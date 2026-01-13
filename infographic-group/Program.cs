@@ -1,9 +1,17 @@
 ﻿using StravaSharp;
 using StravaInfographics;
+using Microsoft.Extensions.Configuration;
+using Dumpify;
 
-Authenticator authenticator = new(string.Empty);
+IConfigurationRoot configurationRoot = new ConfigurationBuilder()
+    .AddUserSecrets<Program>()
+    .Build();
 
-Client client = new(authenticator);
+string accessToken = configurationRoot["Strava:AccessToken"] ?? throw new ArgumentNullException(nameof(configurationRoot));
+Authenticator authenticator = new(accessToken);
+Client client = Client.Create(authenticator);
 
-Task<IEnumerable<ActivitySummary>> activities = client.Activities.GetAthleteActivities();
+IEnumerable<ActivitySummary> activities = await client.Activities.GetAthleteActivities();
+
+activities.Dump();
 

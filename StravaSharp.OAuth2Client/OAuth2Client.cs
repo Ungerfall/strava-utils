@@ -4,9 +4,8 @@ using RestSharp;
 
 namespace StravaSharp.OAuth2Client;
 
-public abstract class OAuth2Client
+public abstract class OAuth2Client(OAuth2ClientConfiguration config)
 {
-    private readonly OAuth2ClientConfiguration _config;
 
     public string? AccessToken { get; protected set; }
 
@@ -16,23 +15,18 @@ public abstract class OAuth2Client
 
     public abstract string TokenUri { get; }
 
-    public OAuth2ClientConfiguration Configuration => _config;
-
-    public OAuth2Client(OAuth2ClientConfiguration config)
-    {
-        _config = config;
-    }
+    public OAuth2ClientConfiguration Configuration { get; } = config;
 
     public string GetAuthorizationUrl()
     {
-        var client = new RestClient();
+        RestClient client = new();
 
-        var request = new RestRequest(new Uri(AuthorizeUri));
-        request.AddParameter(OidcConstants.AuthorizeRequest.ClientId, _config.ClientId);
-        request.AddParameter(OidcConstants.AuthorizeRequest.RedirectUri, _config.RedirectUri);
-        request.AddParameter(OidcConstants.AuthorizeRequest.Scope, _config.Scope);
+        RestRequest request = new(new Uri(AuthorizeUri));
+        request.AddParameter(OidcConstants.AuthorizeRequest.ClientId, Configuration.ClientId);
+        request.AddParameter(OidcConstants.AuthorizeRequest.RedirectUri, Configuration.RedirectUri);
+        request.AddParameter(OidcConstants.AuthorizeRequest.Scope, Configuration.Scope);
         CustomizeAuthorizationUrlRequest(request);
-        var authorizationUri = RestSharp.BuildUriExtensions.BuildUri(client, request);
+        Uri authorizationUri = BuildUriExtensions.BuildUri(client, request);
         return authorizationUri.ToString();
     }
 
@@ -44,9 +38,9 @@ public abstract class OAuth2Client
 
     public virtual async Task UpdateAccessToken(string? refreshToken = null)
     {
-        var refreshTokenToUse = (refreshToken ?? RefreshToken) ?? throw new InvalidOperationException("Cannot update access token without refreshtoken");
-        var client = new HttpClient();
-        var response = await client.RequestRefreshTokenAsync(new RefreshTokenRequest
+        string refreshTokenToUse = (refreshToken ?? RefreshToken) ?? throw new InvalidOperationException("Cannot update access token without refreshtoken");
+        HttpClient client = new();
+        TokenResponse? response = await client.RequestRefreshTokenAsync(new RefreshTokenRequest
         {
             Address = TokenUri,
             ClientId = Configuration.ClientId,
