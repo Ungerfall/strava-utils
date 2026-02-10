@@ -1,12 +1,19 @@
 ﻿using IdentityModel;
 using IdentityModel.Client;
+
 using RestSharp;
 
 namespace StravaSharp.OAuth2Client;
 
 public abstract class OAuth2Client(OAuth2ClientConfiguration config)
 {
+<<<<<<< Updated upstream
 
+||||||| Stash base
+    private readonly OAuth2ClientConfiguration _config;
+
+=======
+>>>>>>> Stashed changes
     public string? AccessToken { get; protected set; }
 
     public string? RefreshToken { get; protected set; }
@@ -21,10 +28,22 @@ public abstract class OAuth2Client(OAuth2ClientConfiguration config)
     {
         RestClient client = new();
 
+<<<<<<< Updated upstream
         RestRequest request = new(new Uri(AuthorizeUri));
         request.AddParameter(OidcConstants.AuthorizeRequest.ClientId, Configuration.ClientId);
         request.AddParameter(OidcConstants.AuthorizeRequest.RedirectUri, Configuration.RedirectUri);
         request.AddParameter(OidcConstants.AuthorizeRequest.Scope, Configuration.Scope);
+||||||| Stash base
+        var request = new RestRequest(new Uri(AuthorizeUri));
+        request.AddParameter(OidcConstants.AuthorizeRequest.ClientId, _config.ClientId);
+        request.AddParameter(OidcConstants.AuthorizeRequest.RedirectUri, _config.RedirectUri);
+        request.AddParameter(OidcConstants.AuthorizeRequest.Scope, _config.Scope);
+=======
+        RestRequest request = new RestRequest(new Uri(AuthorizeUri))
+            .AddParameter(OidcConstants.AuthorizeRequest.ClientId, Configuration.ClientId)
+            .AddParameter(OidcConstants.AuthorizeRequest.RedirectUri, Configuration.RedirectUri)
+            .AddParameter(OidcConstants.AuthorizeRequest.Scope, Configuration.Scope);
+>>>>>>> Stashed changes
         CustomizeAuthorizationUrlRequest(request);
         Uri authorizationUri = BuildUriExtensions.BuildUri(client, request);
         return authorizationUri.ToString();

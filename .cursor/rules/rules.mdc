@@ -1,0 +1,21 @@
+---
+description: Project overview and tech stack context
+alwaysApply: true
+---
+
+# Project Overview
+
+C# / .NET 10 solution for automating tasks with the Strava API.
+
+## Structure
+
+- `infographic-group/` - Console app that fetches athlete activities via StravaSharp
+- `StravaSharp.OAuth2Client/` - Reusable OAuth2 client library for Strava authentication
+
+## Tech Stack
+
+- .NET 10, C# 13
+- StravaSharp for Strava API access
+- RestSharp for HTTP
+- IdentityModel for OAuth2/OIDC
+- User Secrets for local configuration
