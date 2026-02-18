@@ -1,4 +1,4 @@
-﻿using StravaSharp;
+using StravaSharp;
 using StravaSharp.OAuth2Client;
 using StravaInfographics;
 using Microsoft.Extensions.Configuration;
@@ -9,9 +9,9 @@ IConfigurationRoot configurationRoot = new ConfigurationBuilder()
     .Build();
 
 OAuth2ClientConfiguration config = configurationRoot
-    .GetSection(OAuth2ClientConfiguration.SectionName)
-    .Get<OAuth2ClientConfiguration>()
-    ?? throw new ArgumentNullException(nameof(configurationRoot), "Strava config section is missing.");
+    .GetSection("Strava")
+    .GetAndValidate<OAuth2ClientConfiguration>();
+
 StravaClient strava = new(config);
 
 string accessToken = configurationRoot["Strava:AccessToken"] ?? throw new ArgumentNullException(nameof(configurationRoot));
