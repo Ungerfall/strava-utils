@@ -19,3 +19,8 @@ C# / .NET 10 solution for automating tasks with the Strava API.
 - RestSharp for HTTP
 - IdentityModel for OAuth2/OIDC
 - User Secrets for local configuration
+
+## Code Style
+
+- Do not add comments or documentation to code unless explicitly requested by the user
+- Prefer the modern C# `extension` block syntax for extension methods (C# 14)
