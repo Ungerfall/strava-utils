@@ -1,16 +1,11 @@
-﻿namespace StravaSharp.OAuth2Client
+﻿namespace StravaSharp.OAuth2Client;
+
+public static class UriExtensions
 {
-    public static class UriExtensions
+    extension(string input)
     {
-        //
-        // Summary:
-        //     Replacement for HttpUtility.ParseQueryString
-        //
-        // Parameters:
-        //   input:
-        public static IDictionary<string, string> ParseQueryString(this string input)
+        public IDictionary<string, string> ParseQueryString()
         {
-            // remove the leading ? if it's there
             if (input.StartsWith("?"))
             {
                 input = input.Substring(1);

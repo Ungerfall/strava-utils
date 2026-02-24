@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using System.ComponentModel.DataAnnotations;
+using StravaSharp;
+using StravaSharp.OAuth2Client;
 
 namespace StravaInfographics;
 
@@ -11,12 +13,27 @@ public static class ConfigurationExtensions
         {
             T? instance = section.Get<T>();
             if (instance == null)
-                throw new ArgumentNullException(nameof(section), $"Configuration section '{section.Path}' could not be bound to {typeof(T).Name}.");
+                throw new ArgumentNullException(
+                        nameof(section),
+                        $"Configuration section '{section.Path}' could not be bound to {typeof(T).Name}.");
 
             ValidationContext validationContext = new(instance);
             Validator.ValidateObject(instance, validationContext, validateAllProperties: true);
 
             return instance;
+        }
+    }
+
+    extension(IConfiguration configuration)
+    {
+        public async Task<Client> GetStravaClientAsync()
+        {
+            OAuth2ClientConfiguration config = configuration
+                .GetSection("Strava")
+                .GetAndValidate<OAuth2ClientConfiguration>();
+
+            StravaOAuthClient oauth = new(config);
+            return Client.Create(oauth);
         }
     }
 }

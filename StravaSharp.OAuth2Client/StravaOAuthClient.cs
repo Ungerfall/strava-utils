@@ -1,18 +1,18 @@
-﻿using IdentityModel;
+using IdentityModel;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace StravaSharp.OAuth2Client;
 
-public class StravaClient : OAuth2Client
+public sealed class StravaOAuthClient : OAuth2Client
 {
     private string BaseUri => "https://www.strava.com";
 
-    public override string AuthorizeUri => $"{BaseUri}/oauth/authorize";
+    protected override string AuthorizeUri => $"{BaseUri}/oauth/authorize";
 
-    public override string TokenUri => $"{BaseUri}/oauth/token";
+    protected override string TokenUri => $"{BaseUri}/oauth/token";
 
-    public StravaClient(OAuth2ClientConfiguration config) : base(config)
+    public StravaOAuthClient(OAuth2ClientConfiguration config) : base(config)
     {
     }
 
@@ -25,7 +25,6 @@ public class StravaClient : OAuth2Client
 
     public override async Task Authorize(IDictionary<string, string> redirectUrlParameters)
     {
-        // Strava needs parameters in query string, so can't leverage IdentityModel too much here.
         RestClient client = new();
         RestRequest request = new(TokenUri, Method.Post);
         request.AddQueryParameter(OidcConstants.TokenRequest.ClientId, Configuration.ClientId);
@@ -60,6 +59,8 @@ public class StravaClient : OAuth2Client
             JObject? responseAsJson = JObject.Parse(response?.Content ?? "");
             AccessToken = responseAsJson?.GetValue(OidcConstants.TokenResponse.AccessToken)?.Value<string>();
             RefreshToken = responseAsJson?.GetValue(OidcConstants.TokenResponse.RefreshToken)?.Value<string>();
+            long? expiresAt = responseAsJson?.GetValue("expires_at")?.Value<long?>();
+            TokenExpiresAtUtc = expiresAt.HasValue ? DateTimeOffset.FromUnixTimeSeconds(expiresAt.Value).UtcDateTime : null;
         }
     }
 }

@@ -1,23 +1,38 @@
-﻿using IdentityModel;
+using IdentityModel;
 using IdentityModel.Client;
-
 using RestSharp;
+using RestSharp.Authenticators;
 
 namespace StravaSharp.OAuth2Client;
 
-public abstract class OAuth2Client(OAuth2ClientConfiguration config)
+public abstract class OAuth2Client(OAuth2ClientConfiguration config) : IAuthenticator
 {
-    public string? AccessToken { get; protected set; }
+    protected DateTime TokenExpiresAtUtc { get; set; } = config.TokenExpiresAt;
+    protected string AccessToken { get; set; } = config.AccessToken;
+    protected string RefreshToken { get; set; } = config.RefreshToken;
 
-    public string? RefreshToken { get; protected set; }
+    protected abstract string AuthorizeUri { get; }
+    protected abstract string TokenUri { get; }
 
-    public abstract string AuthorizeUri { get; }
+    protected OAuth2ClientConfiguration Configuration { get; } = config;
 
-    public abstract string TokenUri { get; }
+    public async ValueTask Authenticate(IRestClient client, RestRequest request)
+    {
+        await EnsureValidTokenAsync();
+        request.AddOrUpdateParameter(new HeaderParameter(KnownHeaders.Authorization, AccessToken));
+    }
 
-    public OAuth2ClientConfiguration Configuration { get; } = config;
+    protected async Task EnsureValidTokenAsync()
+    {
+        bool missingOrExpired = string.IsNullOrEmpty(AccessToken)
+            || (TokenExpiresAtUtc <= DateTime.UtcNow.AddSeconds(60));
+        if (missingOrExpired)
+        {
+            await UpdateAccessToken();
+        }
+    }
 
-    public string GetAuthorizationUrl()
+    protected string GetAuthorizationUrl()
     {
         RestClient client = new();
 
@@ -48,7 +63,7 @@ public abstract class OAuth2Client(OAuth2ClientConfiguration config)
             GrantType = OidcConstants.TokenRequest.RefreshToken,
             RefreshToken = refreshTokenToUse
         });
-        AccessToken = response?.AccessToken;
-        RefreshToken = response?.RefreshToken;
+        AccessToken = response?.AccessToken ?? throw new InvalidOperationException("AccessToken from response is null");
+        RefreshToken = response?.RefreshToken ?? throw new InvalidOperationException("RefreshToken from response is null");
     }
 }
