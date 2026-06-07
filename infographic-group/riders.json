@@ -1,0 +1,398 @@
+[
+  {
+    "id": null,
+    "firstname": "Ervin",
+    "lastname": "K.",
+    "kudos_count": 20
+  },
+  {
+    "id": 187003192,
+    "firstname": "Ömer Can",
+    "lastname": "A.",
+    "kudos_count": 20,
+    "fullname": "Ömer Can Ataş",
+    "member_since": "Sep 17, 2025",
+    "location": "Antalya, Muratpaşa, Türkiye",
+    "avatar_path": "riders/187003192/avatar.jpg"
+  },
+  {
+    "id": null,
+    "firstname": "Serkan",
+    "lastname": "G.",
+    "kudos_count": 19
+  },
+  {
+    "id": null,
+    "firstname": "Muharrem",
+    "lastname": "D.",
+    "kudos_count": 19
+  },
+  {
+    "id": null,
+    "firstname": "Alparslan",
+    "lastname": "B.",
+    "kudos_count": 16
+  },
+  {
+    "id": null,
+    "firstname": "Mustafa",
+    "lastname": "M.",
+    "kudos_count": 16
+  },
+  {
+    "id": null,
+    "firstname": "Ataman",
+    "lastname": "Ş.",
+    "kudos_count": 15
+  },
+  {
+    "id": null,
+    "firstname": "Azat",
+    "lastname": "S.",
+    "kudos_count": 15
+  },
+  {
+    "id": null,
+    "firstname": "Fettah",
+    "lastname": "K.",
+    "kudos_count": 14
+  },
+  {
+    "id": null,
+    "firstname": "muhamed",
+    "lastname": "K.",
+    "kudos_count": 14
+  },
+  {
+    "id": null,
+    "firstname": "Murat",
+    "lastname": "T.",
+    "kudos_count": 14
+  },
+  {
+    "id": null,
+    "firstname": "ereny",
+    "lastname": "..",
+    "kudos_count": 14
+  },
+  {
+    "id": null,
+    "firstname": "Nadya",
+    "lastname": "P.",
+    "kudos_count": 13
+  },
+  {
+    "id": null,
+    "firstname": "Erkan",
+    "lastname": "K.",
+    "kudos_count": 12
+  },
+  {
+    "id": null,
+    "firstname": "Nilgün",
+    "lastname": "Ö.",
+    "kudos_count": 12
+  },
+  {
+    "id": 51937231,
+    "firstname": "M.Taha",
+    "lastname": "Ç.",
+    "kudos_count": 11,
+    "fullname": "M.Taha Çalık",
+    "member_since": "Mar 11, 2020",
+    "location": "Antalya",
+    "avatar_path": "riders/51937231/avatar.jpg"
+  },
+  {
+    "id": null,
+    "firstname": "Ahmet",
+    "lastname": "Ç.",
+    "kudos_count": 11
+  },
+  {
+    "id": null,
+    "firstname": "Oğuz",
+    "lastname": "N.",
+    "kudos_count": 11
+  },
+  {
+    "id": null,
+    "firstname": "Hacı",
+    "lastname": "Ş.",
+    "kudos_count": 10
+  },
+  {
+    "id": null,
+    "firstname": "Ekrem",
+    "lastname": "B.",
+    "kudos_count": 10
+  },
+  {
+    "id": 32979653,
+    "firstname": "Toprak",
+    "lastname": "Ç.",
+    "kudos_count": 9,
+    "fullname": "Toprak ÇAKARSIN",
+    "member_since": "Jul 22, 2018",
+    "location": "Antalya",
+    "avatar_path": "riders/32979653/avatar.jpg"
+  },
+  {
+    "id": null,
+    "firstname": "Sinan",
+    "lastname": "K.",
+    "kudos_count": 8
+  },
+  {
+    "id": null,
+    "firstname": "Timur",
+    "lastname": "G.",
+    "kudos_count": 8
+  },
+  {
+    "id": null,
+    "firstname": "Yigit",
+    "lastname": "U.",
+    "kudos_count": 8
+  },
+  {
+    "id": null,
+    "firstname": "baris",
+    "lastname": "U.",
+    "kudos_count": 7
+  },
+  {
+    "id": 23711776,
+    "firstname": "Yavuz",
+    "lastname": "A.",
+    "kudos_count": 7,
+    "fullname": "Yavuz Alkan",
+    "member_since": "Jul 26, 2017",
+    "avatar_path": "riders/23711776/avatar.jpg"
+  },
+  {
+    "id": null,
+    "firstname": "Hikmet Emre",
+    "lastname": "K.",
+    "kudos_count": 7
+  },
+  {
+    "id": null,
+    "firstname": "Ökkeş, Mutlu",
+    "lastname": "K.",
+    "kudos_count": 6
+  },
+  {
+    "id": null,
+    "firstname": "Volkan",
+    "lastname": "K.",
+    "kudos_count": 6
+  },
+  {
+    "id": null,
+    "firstname": "Dan",
+    "lastname": "E.",
+    "kudos_count": 6
+  },
+  {
+    "id": null,
+    "firstname": "Fatih",
+    "lastname": "D.",
+    "kudos_count": 5
+  },
+  {
+    "id": null,
+    "firstname": "Vladimir",
+    "lastname": "O.",
+    "kudos_count": 5
+  },
+  {
+    "id": null,
+    "firstname": "Hüseyin",
+    "lastname": "D.",
+    "kudos_count": 5
+  },
+  {
+    "id": null,
+    "firstname": "Murat",
+    "lastname": "K.",
+    "kudos_count": 5
+  },
+  {
+    "id": null,
+    "firstname": "Enes Can",
+    "lastname": "E.",
+    "kudos_count": 4
+  },
+  {
+    "id": null,
+    "firstname": "Osman",
+    "lastname": "Ö.",
+    "kudos_count": 4
+  },
+  {
+    "id": null,
+    "firstname": "Anton",
+    "lastname": "U.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Anzhela",
+    "lastname": "K.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Gökhan",
+    "lastname": "A.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Ufuk",
+    "lastname": "..",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Sergei",
+    "lastname": "G.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Burak",
+    "lastname": "A.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "GreG",
+    "lastname": "G.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Raşit",
+    "lastname": "A.",
+    "kudos_count": 3
+  },
+  {
+    "id": null,
+    "firstname": "Aleksandr",
+    "lastname": "O.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Daria",
+    "lastname": "Z.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "erman",
+    "lastname": "K.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Ozan",
+    "lastname": "D.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "ahmet cetin",
+    "lastname": "D.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Nuri",
+    "lastname": "C.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Maria",
+    "lastname": "I.",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Ali Rıza Fırıncı",
+    "lastname": " .",
+    "kudos_count": 2
+  },
+  {
+    "id": null,
+    "firstname": "Hakan",
+    "lastname": "Y.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Güneş",
+    "lastname": "B.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Ruben⚓",
+    "lastname": "D.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Wolf",
+    "lastname": "E.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Pedro",
+    "lastname": "S.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Timur",
+    "lastname": "K.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Yigit",
+    "lastname": "G.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Burak",
+    "lastname": "Ç.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Wolfgang",
+    "lastname": "B.",
+    "kudos_count": 1
+  },
+  {
+    "id": null,
+    "firstname": "Vitalii",
+    "lastname": "R.",
+    "kudos_count": 1
+  },
+  {
+    "id": 34355480,
+    "firnamt": "Hüseyin",
+    "lastname": "Subaşı",
+    "fullname": "Hüseyin Subaşı",
+    "member_since": "Aug 31, 2018",
+    "location": "Konyaaltı, Antalya, Türkiye",
+    "avatar_path": "riders/34355480/avatar.jpg"
+  }
+]
