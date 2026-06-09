@@ -1,12 +1,23 @@
+---
+name: strava-infographic-today-group
+description: Generate a WhatsApp-ready group ride infographic from today's Strava activity
+argument-hint: "[id1,id2,id3,...] [YYYY-MM-DD]"
+arguments: [riders, date]
+---
+
 # strava-infographic-today-group
 
 Generate a WhatsApp-ready group ride infographic from today's Strava activity.
+
+**Invocation:** `/strava-infographic-today-group $ARGUMENTS`
+- `$riders` (first arg) — comma-separated Strava athlete IDs for today's group, e.g. `12345678,23456789,34567890`
+- `$date` (second arg, optional) — ride date as `YYYY-MM-DD`; defaults to today when omitted
 
 ## Workflow
 
 ### Step A — One-time setup: find your group riders
 ```bash
-cd /mnt/c/development/strava
+cd /mnt/c/development/strava-utils/infographic-group
 python infographic.py --fetch-riders
 ```
 This scans kudos on your last 20 activities and prints a frequency-sorted list of names.
@@ -42,13 +53,23 @@ Generates an infographic for just the authenticated athlete.
 | `--output PATH` | Custom output file path |
 
 ## Output
-Saves `group_ride_YYYYMMDD.png` (1080×~1580 px) in `/mnt/c/development/strava/`.
+Defaults to `group_ride_YYYYMMDD.png` (1080×~1580 px) in the working dir (`infographic-group/`).
+Keep finished infographics in the repo's `output/` dir by passing `--output ../output/group_ride_YYYYMMDD.png`.
 
 ## Steps Claude should follow
-1. `cd /mnt/c/development/strava`
-2. If the user provides rider names/IDs: run `python infographic.py --riders ID1,...`
-3. Otherwise ask: "Do you have the Strava athlete IDs for today's group?"
-4. Report the output path and offer to display the image
+1. `cd /mnt/c/development/strava-utils/infographic-group` (the script reads `riders.json` relative to this dir)
+2. Build the command from the invocation arguments:
+   - If `$riders` is non-empty: `python infographic.py --riders $riders`
+   - If `$riders` is empty: run solo mode `python infographic.py`, but first ask "Do you have the Strava athlete IDs for today's group?" unless the user clearly wants solo mode
+   - If `$date` is non-empty: append `--date $date`
+   - Save to the repo output dir: append `--output ../output/group_ride_$date.png` (use today's date in `YYYYMMDD` form when `$date` is omitted)
+3. Run the resulting command
+4. Report the output path (under `/mnt/c/development/strava-utils/output/`) and offer to display the image
+
+**Examples** (run from `/mnt/c/development/strava-utils/infographic-group`)
+- `/strava-infographic-today-group 12345678,23456789,34567890` → `python infographic.py --riders 12345678,23456789,34567890 --output ../output/group_ride_20260609.png`
+- `/strava-infographic-today-group 12345678,23456789 2026-06-09` → `python infographic.py --riders 12345678,23456789 --date 2026-06-09 --output ../output/group_ride_20260609.png`
+- `/strava-infographic-today-group` → solo mode (`python infographic.py`)
 
 ## Troubleshooting
 - **"Strava token expired"** → Reconnect via the strava-mcp tool in Claude Code
@@ -59,6 +80,6 @@ Saves `group_ride_YYYYMMDD.png` (1080×~1580 px) in `/mnt/c/development/strava/`
 ## Dependencies
 Install once:
 ```bash
-cd /mnt/c/development/strava
+cd /mnt/c/development/strava-utils/infographic-group
 python3 -m pip install -r requirements.txt --break-system-packages
 ```
