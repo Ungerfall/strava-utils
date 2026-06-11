@@ -1,4 +1,5 @@
 import json
+import math
 import time
 from pathlib import Path
 import requests
@@ -81,6 +82,40 @@ def get_athlete_profile(athlete_id: int) -> dict:
         return {}
 
 
+# ── Geo helpers ───────────────────────────────────────────────────────────────
+
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6_371_000.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def _find_idx_at_distance(distances: list, target_m: float) -> int:
+    """Binary search: index of the distance value closest to target_m."""
+    lo, hi = 0, len(distances) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if distances[mid] < target_m:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+
+def _nearest_idx_and_dist(latlng: list, ref_lat: float, ref_lon: float) -> tuple[int, float]:
+    """Linear scan: index and distance (m) of the closest GPS point to (ref_lat, ref_lon)."""
+    best_idx, best_dist = 0, float("inf")
+    for i, (lat, lon) in enumerate(latlng):
+        d = _haversine_m(ref_lat, ref_lon, lat, lon)
+        if d < best_dist:
+            best_dist = d
+            best_idx = i
+    return best_idx, best_dist
+
+
 def summarize_streams(streams: dict, device_watts: bool) -> dict:
     """Return per-km averages: {metric: [avg_val_km1, avg_val_km2, ...]}."""
     dist = streams.get("distance", [])
@@ -103,6 +138,65 @@ def summarize_streams(streams: dict, device_watts: bool) -> dict:
                 if (km - 1) * 1000 <= d < km * 1000 and v is not None
             ]
             km_avgs.append(sum(segment) / len(segment) if segment else None)
+        result[metric] = km_avgs
+
+    return result
+
+
+def summarize_streams_aligned(
+    ref_latlng: list,
+    ref_distance: list,
+    rider_streams: dict,
+    device_watts: bool,
+    max_snap_m: float = 100.0,
+    window: int = 5,
+) -> dict:
+    """
+    Align rider metrics to the reference route by GPS proximity.
+
+    For each km marker on the reference route, find the geographically nearest
+    point in the rider's GPS track. If it is within max_snap_m the rider was
+    present there and we average their metrics in a ±window index range. If it
+    exceeds max_snap_m the rider had not joined yet (or had already left) and
+    we emit None so the chart line breaks at that position.
+
+    Returns {metric: [val_or_None, …]} with one entry per km of the reference.
+    """
+    rider_latlng = rider_streams.get("latlng", [])
+    if not rider_latlng or not ref_distance:
+        return {}
+
+    n_km = int(ref_distance[-1] / 1000)
+    if n_km == 0:
+        return {}
+
+    # Pre-compute the reference GPS index for each km marker once.
+    ref_idx_per_km = [
+        _find_idx_at_distance(ref_distance, km * 1000) for km in range(1, n_km + 1)
+    ]
+
+    result = {}
+    for metric in ("watts", "cadence", "heartrate"):
+        if metric == "watts" and not device_watts:
+            continue
+        values = rider_streams.get(metric)
+        if not values or len(values) != len(rider_latlng):
+            continue
+
+        km_avgs = []
+        for km_i, ref_idx in enumerate(ref_idx_per_km):
+            ref_lat, ref_lon = ref_latlng[ref_idx]
+            rider_idx, snap_dist = _nearest_idx_and_dist(rider_latlng, ref_lat, ref_lon)
+
+            if snap_dist > max_snap_m:
+                km_avgs.append(None)
+                continue
+
+            start = max(0, rider_idx - window)
+            end = min(len(values), rider_idx + window + 1)
+            segment = [v for v in values[start:end] if v is not None]
+            km_avgs.append(sum(segment) / len(segment) if segment else None)
+
         result[metric] = km_avgs
 
     return result

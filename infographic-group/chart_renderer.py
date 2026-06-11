@@ -94,18 +94,35 @@ def render_chart(athletes: list[dict], canvas_width: int = 1080, canvas_height: 
     return Image.open(buf).copy()
 
 
-def _interpolate_nones(values: list) -> list:
+def _interpolate_nones(values: list, max_gap: int = 3) -> list:
+    """
+    Fill None gaps that are at most max_gap wide (sensor dropout).
+    Larger gaps are left as None so matplotlib breaks the line there,
+    indicating the rider was not present on that part of the route.
+    """
     result = list(values)
-    for i, v in enumerate(result):
-        if v is None:
-            prev = next((result[j] for j in range(i - 1, -1, -1) if result[j] is not None), None)
-            nxt = next((result[j] for j in range(i + 1, len(result)) if result[j] is not None), None)
-            if prev is not None and nxt is not None:
-                result[i] = (prev + nxt) / 2
-            elif prev is not None:
-                result[i] = prev
-            elif nxt is not None:
-                result[i] = nxt
-            else:
-                result[i] = 0
+    i = 0
+    while i < len(result):
+        if result[i] is not None:
+            i += 1
+            continue
+        # Find the full extent of this None run
+        j = i
+        while j < len(result) and result[j] is None:
+            j += 1
+        gap = j - i
+        if gap <= max_gap:
+            prev = result[i - 1] if i > 0 else None
+            nxt = result[j] if j < len(result) else None
+            for k in range(i, j):
+                if prev is not None and nxt is not None:
+                    result[k] = prev + (nxt - prev) * (k - i + 1) / (gap + 1)
+                elif prev is not None:
+                    result[k] = prev
+                elif nxt is not None:
+                    result[k] = nxt
+                else:
+                    result[k] = 0.0
+        # else: leave as None — line will break in the chart
+        i = j
     return result

@@ -1,0 +1,23 @@
+(function() {
+  Strava.module('Strava.Reports');
+
+  Strava.Reports.Factory = (function() {
+    function Factory() {}
+
+    Factory.createSuspiciousMenu = function(athlete_id, category) {
+      var action;
+      action = new Strava.Reports.FormSuspiciousAction(athlete_id, category);
+      return action;
+    };
+
+    Factory.createFakeMenu = function(athlete_id, category) {
+      var action;
+      action = new Strava.Reports.FormFakeAction(athlete_id, category);
+      return action;
+    };
+
+    return Factory;
+
+  })();
+
+}).call(this);

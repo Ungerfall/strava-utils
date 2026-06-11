@@ -1,0 +1,179 @@
+/* esbuild-sass-plugin:css-chunk:src/components/ReportActionButtons/ReportActionButtons.module.scss */
+.iWmaa7gd {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+.iWmaa7gd .Y-p2p6vi {
+  flex: 1 1 auto;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 110%;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportCheckboxGroup/ReportCheckboxGroup.module.scss */
+.wkifFlps {
+  display: block;
+}
+.wkifFlps .Agk7qY73 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+  color: #000000;
+  cursor: pointer;
+}
+.wkifFlps .GXdkWx46 {
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportRadioGroup/ReportRadioGroup.module.scss */
+.zouqyXan {
+  display: block;
+}
+.zouqyXan .tuNvZEso {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  width: 100%;
+  margin: 0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+  color: #000000;
+  cursor: pointer;
+}
+.zouqyXan .tuNvZEso:hover {
+  background-color: #FAFAFA;
+}
+.zouqyXan .tuNvZEso .pZruEHyn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1rem;
+}
+.zouqyXan .tuNvZEso input[type=radio] {
+  visibility: hidden;
+  width: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportChoiceReasons/ReportChoiceReasons.module.scss */
+.ArxoZrxM {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ArxoZrxM .zsXI4tQQ {
+  background: #F2F2F0;
+  padding: 1.25rem;
+  border-radius: 4px;
+}
+.ArxoZrxM .zsXI4tQQ .GMie6rAc {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+}
+.ArxoZrxM .zsXI4tQQ .s-gAu563 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #43423F;
+  margin-bottom: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportLoader/ReportLoader.module.scss */
+.IoJK91Di {
+  display: flex;
+  justify-content: center;
+  min-height: 600px;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportModal/ReportModal.module.scss */
+.O08wIPgP {
+  --ui-modal-width: 500px;
+  display: block;
+  min-height: 200px;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSubmitSuccess/ReportSubmitSuccess.module.scss */
+.hfJo70aJ {
+  display: flex;
+  gap: 1rem;
+}
+.hfJo70aJ p {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #21211f;
+  margin: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSubtitle/ReportSubtitle.module.scss */
+.KczaZP7- {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+}
+.KczaZP7- a {
+  color: #fc5200;
+}
+.KczaZP7- ul,
+.KczaZP7- ol {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSummary/ReportSummary.module.scss */
+.BkuDgHnM {
+  display: block;
+}
+.BkuDgHnM .Yx1HcDQ7 {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+.BkuDgHnM .Yx1HcDQ7:has(+ .Yx1HcDQ7[data-nested-entry=true]) {
+  margin-bottom: 0.5rem;
+}
+.BkuDgHnM .Yx1HcDQ7:has(+ .Yx1HcDQ7[data-nested-entry=true]) p {
+  margin-bottom: 0.5rem;
+}
+.BkuDgHnM .ksnntYaW {
+  font-size: 1rem;
+  font-weight: 400;
+  margin-top: 0.5rem;
+}
+.BkuDgHnM .Wq8FDDFp {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+.BkuDgHnM .Wq8FDDFp[data-has-description=true] {
+  margin-bottom: 0.25rem;
+}
+.BkuDgHnM .ozhatcQI {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #43423F;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportTitle/ReportTitle.module.scss */
+.CnLVNU5F {
+  font-size: 1.25rem;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/features/ReportAthlete/ReportAthlete.module.scss */
+._8kHySJdY {
+  border: none;
+  justify-content: left;
+  padding-left: 1rem;
+}
+._8kHySJdY:hover {
+  background-color: #FAFAFA;
+}
+

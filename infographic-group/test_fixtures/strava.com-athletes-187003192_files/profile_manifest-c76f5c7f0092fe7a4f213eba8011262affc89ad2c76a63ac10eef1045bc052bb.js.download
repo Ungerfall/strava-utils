@@ -1,0 +1,3249 @@
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.EditPersonalRecordsLightboxView = (function(superClass) {
+    extend(EditPersonalRecordsLightboxView, superClass);
+
+    function EditPersonalRecordsLightboxView() {
+      return EditPersonalRecordsLightboxView.__super__.constructor.apply(this, arguments);
+    }
+
+    EditPersonalRecordsLightboxView.prototype.initialize = function(personalRecords, personalRecordToEdit) {
+      this.lightbox = new Strava.Ui.LightboxView('edit_personal_records');
+      return this.editPersonalRecordsView = new Strava.Athletes.EditPersonalRecordsView(personalRecords, personalRecordToEdit);
+    };
+
+    EditPersonalRecordsLightboxView.prototype.render = function() {
+      this.lightbox.renderWithRenderer(this.editPersonalRecordsView);
+      this.editPersonalRecordsView.editPersonalRecord();
+      return this;
+    };
+
+    EditPersonalRecordsLightboxView.prototype.close = function() {
+      return this.lightbox.closeBox();
+    };
+
+    EditPersonalRecordsLightboxView.show = function(personalRecords, personalRecordToEdit) {
+      this.instance = new Strava.Athletes.EditPersonalRecordsLightboxView(personalRecords, personalRecordToEdit);
+      return this.instance.render();
+    };
+
+    return EditPersonalRecordsLightboxView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.EditPersonalRecordsView = (function(superClass) {
+    extend(EditPersonalRecordsView, superClass);
+
+    EditPersonalRecordsView.prototype.className = 'edit-personal-records marginless';
+
+    function EditPersonalRecordsView(personalRecords, personalRecordToEdit) {
+      this.template = 'personal_records/lightbox_content';
+      this.personalRecords = personalRecords;
+      this.personalRecordToEdit = personalRecordToEdit;
+      this.personalRecords.bind('add', (function(_this) {
+        return function() {
+          return _this.render();
+        };
+      })(this));
+      EditPersonalRecordsView.__super__.constructor.call(this);
+    }
+
+    EditPersonalRecordsView.prototype.render = function() {
+      this.renderTemplate({});
+      this.editPersonalRecordViews = [];
+      this.personalRecords.forEach((function(_this) {
+        return function(pr) {
+          var prView;
+          prView = new Strava.Athletes.EditPersonalRecordView(pr);
+          prView.bind('showForm', function() {
+            return _this.hideOtherPersonalRecordViews(prView);
+          });
+          _this.$el.find('tbody').append(prView.render().el);
+          return _this.editPersonalRecordViews.push(prView);
+        };
+      })(this));
+      return this;
+    };
+
+    EditPersonalRecordsView.prototype.editPersonalRecord = function() {
+      if (this.personalRecordToEdit != null) {
+        return this.editPersonalRecordViews.forEach((function(_this) {
+          return function(editPersonalRecordView) {
+            if (_this.personalRecordToEdit === editPersonalRecordView.personalRecord) {
+              return editPersonalRecordView.showForm();
+            }
+          };
+        })(this));
+      }
+    };
+
+    EditPersonalRecordsView.prototype.hideOtherPersonalRecordViews = function(prViewToShow) {
+      return this.editPersonalRecordViews.forEach(function(prView) {
+        if (prView !== prViewToShow) {
+          return prView.closeForm();
+        }
+      });
+    };
+
+    return EditPersonalRecordsView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.EditPersonalRecordView = (function(superClass) {
+    extend(EditPersonalRecordView, superClass);
+
+    EditPersonalRecordView.prototype.tagName = 'tr';
+
+    EditPersonalRecordView.prototype.events = {
+      'click td .delete': 'deletePersonalRecord',
+      'click td': 'showForm',
+      'click form .cancel': 'closeForm',
+      'click form .save': 'savePersonalRecord'
+    };
+
+    function EditPersonalRecordView(personalRecord) {
+      this.template = 'personal_records/edit';
+      this.personalRecord = personalRecord;
+      this.personalRecord.bind('change', (function(_this) {
+        return function() {
+          _this.render();
+          return _this.showSavedConfirmation();
+        };
+      })(this));
+      EditPersonalRecordView.__super__.constructor.call(this);
+    }
+
+    EditPersonalRecordView.prototype.render = function() {
+      this.renderTemplate({
+        personalRecord: this.personalRecord
+      });
+      jQuery.validator.addMethod('stravaActivityUrl', (function(_this) {
+        return function(url) {
+          if (!!url) {
+            return Strava.Athletes.PersonalRecord.parseActivityUrl(url);
+          } else {
+            return true;
+          }
+        };
+      })(this), Strava.I18n.Locale.t('strava.athletes.edit_personal_record.please_enter_url'));
+      this.$('form').validate({
+        errorElement: 'em',
+        onfocusout: false,
+        rules: {
+          pr_time_sec: {
+            required: true,
+            number: true,
+            min: 0,
+            max: 59
+          },
+          pr_time_min: {
+            required: true,
+            number: true,
+            min: 0,
+            max: 59
+          },
+          pr_time_hr: {
+            number: true,
+            min: 0,
+            max: 70
+          },
+          pr_activity: {
+            stravaActivityUrl: true
+          },
+          pr_results: {
+            url: true
+          }
+        },
+        messages: {
+          pr_time_sec: '',
+          pr_time_min: '',
+          pr_time_hr: '',
+          pr_activity: ''
+        }
+      });
+      return this;
+    };
+
+    EditPersonalRecordView.prototype.showSavedConfirmation = function() {
+      var delayedHandler;
+      this.$el.addClass('saved');
+      delayedHandler = (function(_this) {
+        return function() {
+          return _this.$el.removeClass('saved');
+        };
+      })(this);
+      return setTimeout(delayedHandler, 2000);
+    };
+
+    EditPersonalRecordView.prototype.showForm = function() {
+      this.$el.addClass('editable-row');
+      this.$('td.readonly-column').hide();
+      this.$('td.editable-column').show();
+      return this.trigger('showForm');
+    };
+
+    EditPersonalRecordView.prototype.closeForm = function() {
+      this.$el.removeClass('editable-row');
+      this.$('td.editable-column').hide();
+      this.$('td.readonly-column').show();
+      return false;
+    };
+
+    EditPersonalRecordView.prototype.savePersonalRecord = function() {
+      var hrs, min, prActivity, results, sec;
+      if (!this.$('form').valid()) {
+        return;
+      }
+      this.closeForm();
+      sec = this.$("input[name='pr_time_sec']").val();
+      min = this.$("input[name='pr_time_min']").val();
+      hrs = this.$("input[name='pr_time_hr']").val();
+      prActivity = this.$("input[name='pr_activity']").val();
+      results = this.$("input[name='pr_results']").val();
+      this.personalRecord.setElapsedTime(hrs, min, sec);
+      this.personalRecord.setStravaActivity(prActivity);
+      this.personalRecord.set({
+        results: results
+      });
+      this.personalRecord.save({}, {
+        wait: true
+      });
+      return false;
+    };
+
+    EditPersonalRecordView.prototype.deletePersonalRecord = function() {
+      if (confirm(Strava.I18n.Locale.t('strava.athletes.edit_personal_record.are_you_sure'))) {
+        return this.personalRecord.destroy({
+          wait: true
+        });
+      }
+    };
+
+    return EditPersonalRecordView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava');
+
+  Strava.base_module = {
+    initializeAttributes: function(attributes) {
+      var k, results, v;
+      results = [];
+      for (k in attributes) {
+        v = attributes[k];
+        results.push(this.initAttribute(k, v));
+      }
+      return results;
+    },
+    setOrGet: function(name, value) {
+      if (value !== void 0) {
+        this[name] = value;
+        return this;
+      } else {
+        return this[name];
+      }
+    },
+    initAttribute: function(attr, d) {
+      var name;
+      this.constructor.prototype[attr] = function(value) {
+        return this.setOrGet(name, value);
+      };
+      name = "_" + attr;
+      if (_.isObject(d) && !_.isFunction(d) && (d.constructor === Object.prototype.constructor || d.constructor === Array.prototype.constructor)) {
+        return this[name] = _.clone(d);
+      } else {
+        return this[name] = d;
+      }
+    },
+    create_template: function(selector) {
+      var jq;
+      jq = jQuery(selector);
+      return this.template = _.template(jq.html());
+    },
+    create_template_for: function(selector) {
+      var jq;
+      jq = jQuery(selector);
+      return _.template(jq.html());
+    }
+  };
+
+  Strava.chart_module = {
+    shouldAnimate: function(animate) {
+      if (this.animate() != null) {
+        return this.animate();
+      } else {
+        return animate;
+      }
+    }
+  };
+
+  Strava.local_storage_module = {
+    initializeStorageAttributes: function(attributes, namespace, clear) {
+      var k, results, v;
+      if (clear == null) {
+        clear = false;
+      }
+      if (clear) {
+        this.setLocalStorage(namespace, {});
+      }
+      results = [];
+      for (k in attributes) {
+        v = attributes[k];
+        results.push(this.initStorageAttribute(k, v, namespace));
+      }
+      return results;
+    },
+    getLocalStorage: function(namespace) {
+      var stored;
+      stored = localStorage[namespace];
+      if (!stored) {
+        return {};
+      }
+      return JSON.parse(localStorage[namespace]) || {};
+    },
+    setLocalStorage: function(namespace, store) {
+      return localStorage[namespace] = JSON.stringify(store);
+    },
+    setOrGetStorage: function(name, value, namespace) {
+      var store;
+      store = this.getLocalStorage(namespace);
+      if (value !== void 0) {
+        store[name] = value;
+        this.setLocalStorage(namespace, store);
+        return this;
+      } else {
+        return store[name];
+      }
+    },
+    initStorageAttribute: function(attr, d, namespace) {
+      var name, stored;
+      this.constructor.prototype[attr] = function(value) {
+        return this.setOrGetStorage(name, value, namespace);
+      };
+      name = "_" + attr;
+      if (_.isObject(d) && !_.isFunction(d) && (d.constructor === Object.prototype.constructor || d.constructor === Array.prototype.constructor)) {
+        throw new Error('cannot store non-primitive types in localstorage');
+      } else {
+        stored = this.setOrGetStorage(name, void 0, namespace);
+        if (stored !== void 0) {
+          d = stored;
+        }
+        return this.setOrGetStorage(name, d, namespace);
+      }
+    }
+  };
+
+  Strava.Base = (function() {
+    Strava.includeModule(Base, Backbone.Events);
+
+    Strava.includeModule(Base, Strava.base_module);
+
+    function Base() {}
+
+    Base.prototype.$ = function(selector, scope) {
+      return scope.find(selector);
+    };
+
+    Base.prototype.$$ = function(selector) {
+      return jQuery(selector);
+    };
+
+    Base.prototype.$document = function() {
+      return jQuery(document);
+    };
+
+    Base.prototype.one = function(ev, callback, context) {
+      var c, e, func, that;
+      that = this;
+      c = callback;
+      e = ev;
+      func = function() {
+        c.call(this);
+        return that.unbind(e, func);
+      };
+      return this.bind(ev, func, context);
+    };
+
+    Base.prototype.createHandler = function(handler) {
+      return function() {
+        var args;
+        args = Array.prototype.slice.call(arguments);
+        args.unshift(this);
+        return handler.apply(null, args);
+      };
+    };
+
+    Base.prototype.isTouchDevice = function() {
+      if (Modernizr) {
+        return Modernizr.touch;
+      } else {
+        return false;
+      }
+    };
+
+    return Base;
+
+  })();
+
+  Strava.Controller = (function(superClass) {
+    extend(Controller, superClass);
+
+    Strava.includeModule(Controller, Strava.base_module);
+
+    function Controller() {
+      Controller.__super__.constructor.call(this);
+    }
+
+    Controller.prototype.parse = function(response) {
+      return {
+        id: 0
+      };
+    };
+
+    return Controller;
+
+  })(Backbone.Model);
+
+  Strava.Modern = {
+    loadModernProxy: function() {
+      var key;
+      if ((self.StravaModern != null) && (Object.keys(self.StravaModern)[0] != null)) {
+        key = Object.keys(StravaModern)[0];
+        return StravaModern[key];
+      } else {
+        throw 'StravaModern proxy not loaded as part of page';
+      }
+    }
+  };
+
+  Strava.ReactComponentMounter = {
+    mountComponent: function(props) {
+      var proxy;
+      proxy = Strava.Modern.loadModernProxy();
+      return proxy.ReactComponentMounter.mountComponent(props);
+    }
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.PersonalRecord = (function(superClass) {
+    extend(PersonalRecord, superClass);
+
+    function PersonalRecord() {
+      return PersonalRecord.__super__.constructor.apply(this, arguments);
+    }
+
+    PersonalRecord.ACTIVITY_URL_REGEXP = /strava.com\/activities\/([0-9]+)/;
+
+    PersonalRecord.prototype.getHoursMinutesSeconds = function() {
+      var elapsedTime, hours, hoursMinutesSeconds, minutes, seconds;
+      elapsedTime = this.get('elapsed_time');
+      hoursMinutesSeconds = [];
+      if (elapsedTime) {
+        hours = Math.floor(elapsedTime / 3600).toString();
+        hoursMinutesSeconds.push(hours);
+        elapsedTime = elapsedTime - (3600 * hours);
+        minutes = Math.floor(elapsedTime / 60);
+        if (minutes < 10 && hours > 0) {
+          minutes = "0" + minutes;
+        }
+        hoursMinutesSeconds.push(minutes.toString());
+        seconds = Math.floor(elapsedTime - (60 * hoursMinutesSeconds[1]));
+        if (seconds < 10) {
+          seconds = "0" + seconds;
+        }
+        hoursMinutesSeconds.push(seconds.toString());
+        return hoursMinutesSeconds;
+      } else {
+        return ['', '', ''];
+      }
+    };
+
+    PersonalRecord.prototype.setElapsedTime = function(hrs, min, sec) {
+      var totalSeconds;
+      totalSeconds = 0;
+      if (!!sec) {
+        this.set({
+          elapsed_time_sec: sec
+        });
+        if (!!sec) {
+          totalSeconds += parseInt(sec);
+        }
+      }
+      if (!!min) {
+        this.set({
+          elapsed_time_min: min
+        });
+        totalSeconds += 60 * parseInt(min);
+      }
+      if (!!hrs) {
+        this.set({
+          elapsed_time_hrs: hrs
+        });
+        totalSeconds += 3600 * parseInt(hrs);
+      }
+      return this.set({
+        elapsed_time: totalSeconds
+      });
+    };
+
+    PersonalRecord.prototype.setStravaActivity = function(url) {
+      var parsedActivityId;
+      this.set({
+        activity_url: url
+      });
+      parsedActivityId = PersonalRecord.parseActivityUrl(url);
+      if (parsedActivityId) {
+        return this.set({
+          activity_id: parsedActivityId
+        });
+      }
+    };
+
+    PersonalRecord.parseActivityUrl = function(url) {
+      var result;
+      if (!!url) {
+        result = PersonalRecord.ACTIVITY_URL_REGEXP.exec(url);
+        if (result && result.length === 2) {
+          return result[1];
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    };
+
+    return PersonalRecord;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.PersonalRecords = (function(superClass) {
+    extend(PersonalRecords, superClass);
+
+    PersonalRecords.prototype.model = Strava.Athletes.PersonalRecord;
+
+    function PersonalRecords(athleteId) {
+      PersonalRecords.__super__.constructor.call(this);
+      this.comparator = function(pr) {
+        return pr.get('record_type');
+      };
+      this.athleteId = athleteId;
+      this.deferred = jQuery.Deferred();
+      this.bind('reset', (function(_this) {
+        return function() {
+          return _this.deferred.resolve();
+        };
+      })(this));
+      this.bind('remove', (function(_this) {
+        return function(model) {
+          var distance, replacement;
+          distance = model.get('record_type');
+          replacement = new Strava.Athletes.PersonalRecord({
+            record_type: distance
+          });
+          return _this.add(replacement);
+        };
+      })(this));
+    }
+
+    PersonalRecords.prototype.url = function() {
+      return "/athletes/" + this.athleteId + "/prs";
+    };
+
+    return PersonalRecords;
+
+  })(Backbone.Collection);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.PersonalRecordsView = (function(superClass) {
+    extend(PersonalRecordsView, superClass);
+
+    PersonalRecordsView.prototype.events = {
+      'click #add-pr': 'openLightbox'
+    };
+
+    function PersonalRecordsView(athleteId, viewerId, isAdminView) {
+      var deferreds;
+      this.athletePersonalRecords = new Strava.Athletes.PersonalRecords(athleteId);
+      this.athletePersonalRecords.bind('destroy', (function(_this) {
+        return function() {
+          return _this.render();
+        };
+      })(this));
+      deferreds = [this.athletePersonalRecords.deferred];
+      this.canEdit = athleteId === viewerId;
+      this.viewerPersonalRecords = null;
+      if ((viewerId !== athleteId) && !isAdminView) {
+        this.viewerPersonalRecords = new Strava.Athletes.PersonalRecords(viewerId);
+        deferreds.push(this.viewerPersonalRecords.deferred);
+      }
+      this.template = 'personal_records/index';
+      jQuery.when.apply(null, deferreds).done((function(_this) {
+        return function() {
+          return _this.render();
+        };
+      })(this));
+      PersonalRecordsView.__super__.constructor.call(this);
+    }
+
+    PersonalRecordsView.prototype.fetchModels = function() {
+      this.athletePersonalRecords.fetch({
+        reset: true
+      });
+      if (this.viewerPersonalRecords) {
+        return this.viewerPersonalRecords.fetch({
+          reset: true
+        });
+      }
+    };
+
+    PersonalRecordsView.prototype.render = function() {
+      var index;
+      this.renderTemplate({
+        athletePersonalRecords: this.athletePersonalRecords,
+        viewerPersonalRecords: this.viewerPersonalRecords,
+        canEdit: !this.viewerPersonalRecords
+      });
+      index = 0;
+      return this.athletePersonalRecords.forEach((function(_this) {
+        return function(pr) {
+          var prView, viewerPr;
+          viewerPr = _this.viewerPersonalRecords ? _this.viewerPersonalRecords.at(index) : null;
+          prView = new Strava.Athletes.PersonalRecordView(pr, viewerPr, _this.canEdit);
+          prView.bind('edit', function() {
+            return _this.openLightbox(pr);
+          });
+          if (_this.canEdit) {
+            pr.bind('sync', function() {
+              return _this.render();
+            });
+          }
+          if (prView.shouldShow()) {
+            _this.$el.append(prView.render().el);
+          }
+          return index++;
+        };
+      })(this));
+    };
+
+    PersonalRecordsView.prototype.openLightbox = function(pr) {
+      return Strava.Athletes.EditPersonalRecordsLightboxView.show(this.athletePersonalRecords, pr);
+    };
+
+    return PersonalRecordsView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.PersonalRecordTypes = [1500, 1609, 3000, 3219, 5000, 10000, 15000, 16090, 20000, 21097, 30000, 42195, 50000, 80467, 100000, 160934];
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Athletes');
+
+  Strava.Athletes.PersonalRecordView = (function(superClass) {
+    extend(PersonalRecordView, superClass);
+
+    PersonalRecordView.prototype.tagName = 'tr';
+
+    PersonalRecordView.prototype.events = {
+      'click .viewing .clickable.pr': 'showAthleteDetails',
+      'click .viewer .clickable.pr': 'showViewerDetails'
+    };
+
+    function PersonalRecordView(athletePersonalRecord, viewerPersonalRecord, canEdit) {
+      this.athletePersonalRecord = athletePersonalRecord;
+      this.viewerPersonalRecord = viewerPersonalRecord;
+      this.canEdit = canEdit;
+      if (this.canEdit) {
+        this.athletePersonalRecord.bind('sync', (function(_this) {
+          return function() {
+            return _this.render();
+          };
+        })(this));
+      }
+      this.template = 'personal_records/row';
+      PersonalRecordView.__super__.constructor.call(this);
+    }
+
+    PersonalRecordView.prototype.shouldShow = function() {
+      return this.athletePersonalRecord.get('elapsed_time') || (this.viewerPersonalRecord && this.viewerPersonalRecord.get('elapsed_time'));
+    };
+
+    PersonalRecordView.prototype.render = function() {
+      this.renderTemplate({
+        distance: this.athletePersonalRecord.get('record_type'),
+        athletePersonalRecord: this.athletePersonalRecord,
+        viewerPersonalRecord: this.viewerPersonalRecord
+      });
+      return this;
+    };
+
+    PersonalRecordView.prototype.showAthleteDetails = function(event) {
+      return this.showDetails(event, this.athletePersonalRecord);
+    };
+
+    PersonalRecordView.prototype.showViewerDetails = function(event) {
+      return this.showDetails(event, this.viewerPersonalRecord);
+    };
+
+    PersonalRecordView.prototype.showDetails = function(event, pr) {
+      var data, tooltip;
+      data = {
+        canEdit: this.canEdit,
+        recordType: pr.get('record_type'),
+        results: pr.get('results'),
+        activityId: pr.get('activity_id'),
+        time: pr.get('elapsed_time'),
+        header: Strava.I18n.Locale.t("templates.personal_records.edit.distances." + (this.athletePersonalRecord.get('record_type')) + "m")
+      };
+      tooltip = new Strava.Ui.TooltipView('personal_records/detail_tooltip');
+      this.$$(tooltip.el).addClass('all-time-pr');
+      tooltip.render(data, event.currentTarget);
+      return this.$$(tooltip.el).find('a.edit').click((function(_this) {
+        return function() {
+          tooltip.dismissTooltip();
+          return _this.trigger('edit');
+        };
+      })(this));
+    };
+
+    return PersonalRecordView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['personal_records/detail_tooltip'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='dismiss'>Dismiss</a>\n<h4 class='h5 title'>" + ($e($c(this.data.header))) + "</h4>\n<div class='content'>\n  <div class='time'>");
+      $o.push("    " + $e($c(new Strava.I18n.TimespanFormatter().display(this.data.time))));
+      if (this.data.canEdit) {
+        $o.push("    <a class='edit sprite'></a>");
+      }
+      $o.push("  </div>");
+      if (this.data.activityId || this.data.results) {
+        $o.push("  <div class='results'>");
+        if (this.data.activityId) {
+          $o.push("    <a href='http://www.strava.com/activities/" + ($e($c(this.data.activityId))) + "'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.detail_tooltip.strava_activity')))) + "</a>");
+        }
+        if (this.data.results) {
+          $o.push("    <a href='" + ($e($c(this.data.results))) + "' target='_blank'>" + ($c(Strava.I18n.Locale.t('templates.personal_records.detail_tooltip.official_results') + " &rarr;")) + "</a>");
+        }
+        $o.push("  </div>");
+      }
+      $o.push("</div>\n<div class='arrow bottom'></div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['personal_records/edit'] = function(context) {
+    return (function() {
+      var $c, $e, $o, activityUrl, hoursMinutesSeconds;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<td>" + ($e($c(Strava.I18n.Locale.t("templates.personal_records.edit.distances." + (this.personalRecord.get('record_type')) + "m")))) + "</td>\n<td class='readonly-column'>");
+      if (this.personalRecord.get('elapsed_time')) {
+        $o.push("  " + $e($c(new Strava.I18n.TimespanFormatter().display(this.personalRecord.get('elapsed_time')))));
+      } else {
+        $o.push("  &mdash;");
+      }
+      $o.push("</td>\n<td class='readonly-column'>");
+      if (this.personalRecord.get('elapsed_time')) {
+        $o.push("  <span class='edit'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.edit_personal_record')))) + "</span>\n  <span class='clickable delete float-right'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.remove')))) + "</span>");
+      } else {
+        $o.push("  <span class='add clickable'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.add_personal_record')))) + "</span>");
+      }
+      $o.push("  <div class='confirm float-right'>\n    <strong>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.saved')))) + "</strong>\n  </div>\n</td>\n<td class='editable-column' colspan='" + ($e($c(2))) + "'>\n  <form>");
+      hoursMinutesSeconds = this.personalRecord.getHoursMinutesSeconds();
+      activityUrl = '';
+      if (this.personalRecord.get('activity_id')) {
+        activityUrl = "http://www.strava.com/activities/" + (this.personalRecord.get('activity_id'));
+      }
+      $o.push("    <label for='pr_time_min'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.time')))) + "</label>");
+      if (this.personalRecord.get('record_type') > 5000) {
+        $o.push("    <input class='short' type='number' name='pr_time_hr' placeholder='" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.hour')))) + "' value='" + ($e($c(hoursMinutesSeconds[0]))) + "'>");
+      }
+      $o.push("    <input class='short' type='number' name='pr_time_min' placeholder='" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.minute')))) + "' value='" + ($e($c(hoursMinutesSeconds[1]))) + "'>\n    <input class='short' type='number' name='pr_time_sec' placeholder='" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.second')))) + "' value='" + ($e($c(hoursMinutesSeconds[2]))) + "'>\n    <a class='alt button compact save' href='javascript:;'>");
+      if (this.personalRecord.isNew()) {
+        $o.push("      " + $e($c(Strava.I18n.Locale.t('templates.personal_records.edit.add_pr'))));
+      } else {
+        $o.push("      " + $e($c(Strava.I18n.Locale.t('templates.personal_records.edit.update_pr'))));
+      }
+      $o.push("    </a>\n    <a class='cancel'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.cancel')))) + "</a>\n    <div class='inline-inputs'>\n      <span>\n        <label for='pr_results'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.race_results')))) + "</label>\n        <input type='text' name='pr_results' placeholder='" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.paste_your_race_result_url_here')))) + "' value='" + ($e($c(this.personalRecord.get('results')))) + "'>\n      </span>\n      <span>\n        <label for='pr_activity'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.strava_activity')))) + "</label>\n        <input type='text' name='pr_activity' placeholder='" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.edit.paste_your_strava_activity_link_here')))) + "' value='" + ($e($c(activityUrl))) + "'>\n      </span>\n    </div>\n  </form>\n</td>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['personal_records/index'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<tr>\n  <th>\n    <span class='glossary-link new-version' data-glossary-term='definition-all-time-prs'>");
+      $o.push("      " + $e($c(Strava.I18n.Locale.t('templates.personal_records.index.all_time_prs'))));
+      $o.push("    </span>\n  </th>\n  <th class='viewing'>");
+      if (this.canEdit) {
+        $o.push("    <button class='compact' id='add-pr'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.index.add_pr')))) + "</button>");
+      }
+      $o.push("  </th>");
+      if (this.viewerPersonalRecords) {
+        $o.push("  <th class='viewer'></th>");
+      }
+      $o.push("</tr>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['personal_records/lightbox_content'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<header>\n  <h3 class='marginless'>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.personal_records.lightbox_content.all_time'))));
+      $o.push("  </h3>\n</header>\n<div class='content'>\n  <table class='dense hoverable marginless'>\n    <thead>\n      <tr>\n        <th>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.lightbox_content.race_distance')))) + "</th>\n        <th colspan='" + ($e($c(2))) + "'>" + ($e($c(Strava.I18n.Locale.t('templates.personal_records.lightbox_content.time')))) + "</th>\n      </tr>\n    </thead>\n    <tbody></tbody>\n  </table>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['personal_records/row'] = function(context) {
+    return (function() {
+      var $c, $e, $o, elapsedTime, hasResult;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<td>" + ($e($c(Strava.I18n.Locale.t("templates.personal_records.edit.distances." + this.distance + "m")))) + "</td>\n<td class='viewing'>");
+      if (this.athletePersonalRecord.get('elapsed_time')) {
+        hasResult = this.athletePersonalRecord.get('results') || this.athletePersonalRecord.get('activity_id');
+        elapsedTime = new Strava.I18n.TimespanFormatter().display(this.athletePersonalRecord.get('elapsed_time'));
+        if (hasResult) {
+          $o.push("  <span class='clickable pr'>" + ($e($c(elapsedTime))) + "</span>");
+        } else {
+          if (this.viewerPersonalRecord) {
+            $o.push("  " + $e($c(elapsedTime)));
+          } else {
+            $o.push("  <span class='clickable no-result pr'>" + ($e($c(elapsedTime))) + "</span>");
+          }
+        }
+      } else {
+        $o.push("  &mdash;");
+      }
+      $o.push("</td>");
+      if (this.viewerPersonalRecord) {
+        $o.push("<td class='viewer'>");
+        if (this.viewerPersonalRecord.get('elapsed_time')) {
+          hasResult = this.viewerPersonalRecord.get('results') || this.viewerPersonalRecord.get('activity_id');
+          elapsedTime = new Strava.I18n.TimespanFormatter().display(this.viewerPersonalRecord.get('elapsed_time'));
+          if (hasResult) {
+            $o.push("  <span class='clickable pr'>" + ($e($c(elapsedTime))) + "</span>");
+          } else {
+            $o.push("  " + $e($c(elapsedTime)));
+          }
+        } else {
+          $o.push("  &mdash;");
+        }
+        $o.push("</td>");
+      }
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.EditGoalsView = (function(superClass) {
+    extend(EditGoalsView, superClass);
+
+    EditGoalsView.prototype.events = {
+      'submit form': 'save',
+      'click .js-cancel': 'cancel',
+      'click .toggle-goal': 'toggleGoal',
+      'click .btn-group button': 'changeGoalType'
+    };
+
+    function EditGoalsView(options) {
+      var i, len, ref, viewModel;
+      EditGoalsView.__super__.constructor.call(this, options);
+      this.athleteId = options.athleteId;
+      this.viewModels = [new Strava.ProgressGoals.EditViewModel(options.weekProgress, this.athleteId, 'week'), new Strava.ProgressGoals.EditViewModel(options.yearProgress, this.athleteId, 'year')];
+      ref = this.viewModels;
+      for (i = 0, len = ref.length; i < len; i++) {
+        viewModel = ref[i];
+        this.initializeGoals(viewModel);
+      }
+    }
+
+    EditGoalsView.prototype.initializeGoals = function(viewModel) {
+      var i, len, ref, sport, toggle;
+      ref = viewModel.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        toggle = this.$(".media[data-type='" + sport + "'][data-period='" + viewModel.period + "'] .toggle-goal");
+        if (viewModel.isActive(sport)) {
+          this.enableGoal(toggle);
+        } else {
+          this.disableGoal(toggle);
+        }
+        this.setGoalType(viewModel.period, sport, viewModel.goalType(sport));
+      }
+      return this;
+    };
+
+    EditGoalsView.prototype.save = function(event) {
+      var sport, updates;
+      event.preventDefault();
+      sport = this.$(event.currentTarget).closest('.tab-content').data('sport');
+      updates = this.viewModels.map((function(_this) {
+        return function(viewModel) {
+          var goal, selector;
+          selector = ".media[data-period='" + viewModel.period + "'] input[name='" + sport + "-goal']";
+          goal = _this.$(selector).val();
+          return viewModel.saveGoalForSport(sport, goal);
+        };
+      })(this));
+      return jQuery.when.apply(jQuery, updates).done((function(_this) {
+        return function() {
+          return _this.trigger('saveOrCancel', _this);
+        };
+      })(this));
+    };
+
+    EditGoalsView.prototype.cancel = function() {
+      return this.trigger('saveOrCancel', this);
+    };
+
+    EditGoalsView.prototype.toggleGoal = function(event) {
+      var period, sport, toggle;
+      toggle = this.$$(event.currentTarget);
+      sport = toggle.closest('.media').data('type');
+      period = toggle.closest('.media').data('period');
+      if (toggle.hasClass('active')) {
+        this.disableGoal(toggle);
+        return this.viewModel(period).disable(sport);
+      } else {
+        this.enableGoal(toggle);
+        return this.viewModel(period).enable(sport);
+      }
+    };
+
+    EditGoalsView.prototype.setGoalType = function(period, sport, type) {
+      var button;
+      button = this.$(".media[data-type='" + sport + "'][data-period='" + period + "'] button[data-type='" + type + "']");
+      button.closest('.btn-group').find('button').removeClass('active');
+      return button.addClass('active');
+    };
+
+    EditGoalsView.prototype.changeGoalType = function(event) {
+      var button, period, sport, type;
+      button = this.$$(event.target).closest('button');
+      sport = button.closest('.media').data('type');
+      period = button.closest('.media').data('period');
+      type = button.data('type');
+      button.closest('.btn-group').find('button').removeClass('active');
+      button.addClass('active');
+      this.viewModel(period).changeType(sport, type);
+      return false;
+    };
+
+    EditGoalsView.prototype.enableGoal = function(toggle) {
+      toggle.addClass('active');
+      toggle.parent('.media').find('input[type="number"], button').prop('disabled', false);
+      toggle.parent('.media').find('img').removeClass('disabled');
+      return toggle.parent('.media').find('.app-icon').addClass('icon-dark');
+    };
+
+    EditGoalsView.prototype.disableGoal = function(toggle) {
+      toggle.removeClass('active');
+      toggle.parent('.media').find('input[type="number"], button').prop('disabled', true);
+      toggle.parent('.media').find('img').addClass('disabled');
+      return toggle.parent('.media').find('.app-icon').removeClass('icon-dark');
+    };
+
+    EditGoalsView.prototype.viewModel = function(period) {
+      return _.find(this.viewModels, function(viewModel) {
+        return viewModel.period === period;
+      });
+    };
+
+    return EditGoalsView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['progress_goals/edit_view'] = function(context) {
+    return (function() {
+      var $c, $e, $o, i, len, ref, sport;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<form>\n  <input class='btn-primary btn-xs float-right topless' type='submit' value='" + ($e($c(Strava.I18n.Locale.t('templates.progress_goals.edit_view.save')))) + "'>\n  <h3>" + ($e($c(this.title))) + "</h3>");
+      ref = this.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        $o.push("  <div class='inline-inputs' data-type='" + ($e($c(sport))) + "'>\n    <div class='toggle-button'>\n      <div class='btn'></div>\n    </div>\n    <label class='vh' for='" + ($e($c(sport))) + "_goal'>" + ($e($c(Strava.I18n.Locale.t("templates.progress_goals.edit_view." + sport + "_goal")))) + "</label>\n    <input class='goal-value input-sm short' id='" + sport + "_goal' type='number' name='" + ($e($c(sport))) + "_goal' min='0' max='" + ($e($c(this.yearlyGoalCaps[sport]))) + "' value='" + ($e($c(this.goals[sport].get('amount')))) + "'>\n    <div class='btn-group goal-unit'>\n      <button class='btn-sm' data-type='distance'>");
+        if (sport === 'swim') {
+          $o.push("        " + $e($c(new Strava.I18n.SwimDistanceFormatter().unitShort())));
+        } else {
+          $o.push("        " + $e($c(new Strava.I18n.DistanceFormatter().unitShort())));
+        }
+        $o.push("      </button>\n      <button class='btn-sm' data-type='time'>" + ($e($c(new Strava.I18n.TimespanFormatter().shortHoursLabel()))) + "</button>\n    </div>\n    <div class='" + (['app-icon', 'icon-md', 'icon', "icon-" + ($e($c(sport))) + "-v2"].sort().join(' ').replace(/^\s+|\s+$/g, '')) + "' title='" + ($e($c(Strava.I18n.Locale.t("templates.progress_goals.edit_view." + sport + "_goal")))) + "'></div>\n  </div>");
+      }
+      $o.push("</form>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.EditView = (function(superClass) {
+    extend(EditView, superClass);
+
+    EditView.prototype.template = 'progress_goals/edit_view';
+
+    EditView.prototype.events = {
+      'submit form': 'saveOrCancel',
+      'click .toggle-button': 'toggleGoal',
+      'click .btn-group button': 'changeGoalType'
+    };
+
+    function EditView(options) {
+      var i, len, ref, sport;
+      EditView.__super__.constructor.call(this, options);
+      this.viewModel = options.viewModel;
+      this.imagePaths = {};
+      ref = this.viewModel.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        this.imagePaths[sport] = options[sport + "ImagePath"];
+      }
+      this.title = options.title;
+      this.viewModel.on('goalEnabled', (function(_this) {
+        return function(sport) {
+          return _this.focusGoal(sport);
+        };
+      })(this));
+    }
+
+    EditView.prototype.render = function() {
+      this.renderTemplate({
+        sports: this.viewModel.sports,
+        goals: this.viewModel.goalsBySport,
+        imagePaths: this.imagePaths,
+        title: this.title,
+        yearlyGoalCaps: {
+          swim: 2080000,
+          ride: 200000,
+          run: 40000
+        }
+      });
+      return this.initializeGoals();
+    };
+
+    EditView.prototype.saveOrCancel = function(event) {
+      var deferred, i, len, newGoalsBySport, ref, sport;
+      event.preventDefault();
+      newGoalsBySport = {};
+      ref = this.viewModel.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        newGoalsBySport[sport] = this.$("input[name=\"" + sport + "_goal\"]").val();
+      }
+      deferred = this.viewModel.save(newGoalsBySport);
+      return deferred.done((function(_this) {
+        return function() {
+          return _this.trigger('saveOrCancel', _this);
+        };
+      })(this));
+    };
+
+    EditView.prototype.initializeGoals = function() {
+      var i, len, ref, sport, toggle;
+      ref = this.viewModel.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        toggle = this.$(".inline-inputs[data-type=\"" + sport + "\"] .toggle-button");
+        if (this.viewModel.isActive(sport)) {
+          this.enableGoal(toggle);
+        } else {
+          this.disableGoal(toggle);
+        }
+        this.setGoalType(sport, this.viewModel.goalType(sport));
+      }
+      return this;
+    };
+
+    EditView.prototype.focusGoal = function(sport) {
+      return this.$("input[name=\"" + sport + "_goal\"]").focus();
+    };
+
+    EditView.prototype.toggleGoal = function(event) {
+      var sport, toggle;
+      toggle = this.$$(event.target).closest('.toggle-button');
+      sport = toggle.closest('.inline-inputs').data('type');
+      if (toggle.hasClass('active')) {
+        this.disableGoal(toggle);
+        return this.viewModel.disable(sport);
+      } else {
+        this.enableGoal(toggle);
+        return this.viewModel.enable(sport);
+      }
+    };
+
+    EditView.prototype.setGoalType = function(sport, type) {
+      var button;
+      button = this.$(".inline-inputs[data-type='" + sport + "'] button[data-type='" + type + "']");
+      button.closest('.btn-group').find('button').removeClass('active');
+      return button.addClass('active');
+    };
+
+    EditView.prototype.changeGoalType = function(event) {
+      var button, sport, type;
+      button = this.$$(event.target).closest('button');
+      sport = button.closest('.inline-inputs').data('type');
+      type = button.data('type');
+      button.closest('.btn-group').find('button').removeClass('active');
+      button.addClass('active');
+      this.viewModel.changeType(sport, type);
+      return false;
+    };
+
+    EditView.prototype.enableGoal = function(toggle) {
+      toggle.addClass('active');
+      toggle.parent('.inline-inputs').find('input[type="number"], button').prop('disabled', false);
+      toggle.parent('.inline-inputs').find('img').removeClass('disabled');
+      return toggle.parent('.inline-inputs').find('.app-icon').addClass('icon-dark');
+    };
+
+    EditView.prototype.disableGoal = function(toggle) {
+      toggle.removeClass('active');
+      toggle.parent('.inline-inputs').find('input[type="number"], button').prop('disabled', true);
+      toggle.parent('.inline-inputs').find('img').addClass('disabled');
+      return toggle.parent('.inline-inputs').find('.app-icon').removeClass('icon-dark');
+    };
+
+    return EditView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.ProgressGoal = (function(superClass) {
+    extend(ProgressGoal, superClass);
+
+    ProgressGoal.prototype.defaults = {
+      period: 'week'
+    };
+
+    function ProgressGoal(athleteId, options) {
+      this.athleteId = athleteId;
+      ProgressGoal.__super__.constructor.call(this, options);
+      this.amountWhenDisabled = null;
+    }
+
+    ProgressGoal.prototype.urlRoot = function() {
+      return "/athletes/" + this.athleteId + "/goals";
+    };
+
+    ProgressGoal.prototype.setGoal = function(type, amount, period) {
+      var formatter, isActive;
+      isActive = amount > 0;
+      amount = type === 'distance' ? (formatter = this.get('activity_type') === 'swim' ? new Strava.I18n.SwimDistanceFormatter() : new Strava.I18n.GoalDistanceFormatter(), new TwitterCldr.NumberParser().parse(formatter.format(amount))) : new Strava.I18n.TimespanFormatter().hoursMinutesSeconds(amount)[0];
+      return this.set({
+        type: type,
+        amount: amount,
+        period: period,
+        active: isActive
+      });
+    };
+
+    ProgressGoal.prototype.updateGoalAmount = function(amount) {
+      if (this.get('active')) {
+        return this.set('amount', amount);
+      }
+    };
+
+    ProgressGoal.prototype.enable = function() {
+      this.set('active', true);
+      if (this.amountWhenDisabled) {
+        return this.set('amount', this.amountWhenDisabled);
+      }
+    };
+
+    ProgressGoal.prototype.disable = function() {
+      this.amountWhenDisabled = this.get('amount');
+      return this.set({
+        amount: 0,
+        active: false
+      });
+    };
+
+    return ProgressGoal;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.I18n');
+
+  Strava.I18n.Locale = (function() {
+    function Locale() {}
+
+    Locale.COUNT_PARAMETER = 'count';
+
+    Locale.DECIMAL_FORMATTER = new TwitterCldr.DecimalFormatter();
+
+    Locale.t = function(key, params, dict, pluralize) {
+      var found, i, j, keyElement, keyElements, len, len1, pluralForm, pluralForms, resolvedVal;
+      if (params == null) {
+        params = {};
+      }
+      if (dict == null) {
+        dict = Strava.I18n.Locales.DICTIONARY;
+      }
+      if (pluralize == null) {
+        pluralize = Strava.I18n.Locales.PLURALIZATION;
+      }
+      resolvedVal = dict;
+      keyElements = key.split('.');
+      if (Strava.I18n.Locale.COUNT_PARAMETER in params) {
+        pluralForms = pluralize(params[Strava.I18n.Locale.COUNT_PARAMETER]);
+      }
+      for (i = 0, len = keyElements.length; i < len; i++) {
+        keyElement = keyElements[i];
+        resolvedVal = resolvedVal[keyElement];
+        if (resolvedVal == null) {
+          return key;
+        }
+      }
+      if (pluralForms != null) {
+        found = false;
+        for (j = 0, len1 = pluralForms.length; j < len1; j++) {
+          pluralForm = pluralForms[j];
+          if (resolvedVal[pluralForm] != null) {
+            resolvedVal = resolvedVal[pluralForm];
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return key;
+        }
+      }
+      return this.resolve(resolvedVal, params);
+    };
+
+    Locale.resolve = function(resolvedValue, params) {
+      return resolvedValue.replace(/%%|%{(\w+)}/g, function(match, key) {
+        if (match === '%%') {
+          return '%';
+        } else {
+          if (key in params) {
+            if (key === Strava.I18n.Locale.COUNT_PARAMETER) {
+              return Strava.I18n.Locale.DECIMAL_FORMATTER.format(params[key]);
+            } else {
+              return params[key];
+            }
+          } else {
+            throw new Error("param " + key + " not provided");
+          }
+        }
+      });
+    };
+
+    Locale.measurementPreference = function() {
+      return window._measurement_preference;
+    };
+
+    Locale.unitSystem = function() {
+      if (this.measurementPreference() === 'feet') {
+        return 'imperial';
+      } else {
+        return 'metric';
+      }
+    };
+
+    return Locale;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.I18n');
+
+  Strava.I18n.GoalDistanceFormatter = (function(superClass) {
+    extend(GoalDistanceFormatter, superClass);
+
+    function GoalDistanceFormatter(unitSystem) {
+      if (unitSystem == null) {
+        unitSystem = Strava.I18n.Locale.unitSystem();
+      }
+      GoalDistanceFormatter.__super__.constructor.call(this, unitSystem, 'distance', 0);
+    }
+
+    GoalDistanceFormatter.prototype.convert = function(meters) {
+      var divisor;
+      divisor = this.unitSystem === 'metric' ? 1000 : 1609.344;
+      return meters / divisor;
+    };
+
+    return GoalDistanceFormatter;
+
+  })(Strava.I18n.UnitSystemFormatter);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.EditViewModel = (function() {
+    Strava.includeModule(EditViewModel, Backbone.Events);
+
+    function EditViewModel(collection, athleteId, period) {
+      var i, len, ref, sport;
+      this.period = period;
+      this.sports = collection.pluck('sport');
+      this.goalsBySport = {};
+      ref = this.sports;
+      for (i = 0, len = ref.length; i < len; i++) {
+        sport = ref[i];
+        this.goalsBySport[sport] = new Strava.ProgressGoals.ProgressGoal(athleteId, {
+          active: false,
+          activity_type: sport,
+          type: 'distance',
+          amount: 0
+        });
+      }
+      collection.each((function(_this) {
+        return function(goal) {
+          sport = goal.get('sport');
+          return _this.goalsBySport[sport].setGoal(goal.dimension(), goal.goalAmount(), goal.period());
+        };
+      })(this));
+    }
+
+    EditViewModel.prototype.isActive = function(sport) {
+      return this.goalsBySport[sport].get('active');
+    };
+
+    EditViewModel.prototype.goalType = function(sport) {
+      return this.goalsBySport[sport].get('type');
+    };
+
+    EditViewModel.prototype.disable = function(sport) {
+      return this.goalsBySport[sport].disable();
+    };
+
+    EditViewModel.prototype.enable = function(sport) {
+      this.goalsBySport[sport].enable();
+      return this.trigger('goalEnabled', sport);
+    };
+
+    EditViewModel.prototype.changeType = function(sport, type) {
+      return this.goalsBySport[sport].set('type', type);
+    };
+
+    EditViewModel.prototype.saveGoalForSport = function(sport, goal) {
+      this.goalsBySport[sport].updateGoalAmount(goal);
+      return this.goalsBySport[sport].save();
+    };
+
+    EditViewModel.prototype.save = function(newGoalsBySport) {
+      var deferred, goal, sport, updates;
+      deferred = new jQuery.Deferred();
+      for (sport in newGoalsBySport) {
+        goal = newGoalsBySport[sport];
+        this.goalsBySport[sport].updateGoalAmount(goal);
+      }
+      updates = this.sports.map((function(_this) {
+        return function(sport) {
+          return _this.goalsBySport[sport].save();
+        };
+      })(this));
+      jQuery.when.apply(jQuery, updates).done(function() {
+        return deferred.resolve();
+      });
+      return deferred;
+    };
+
+    return EditViewModel;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.GoalPageView = (function(superClass) {
+    extend(GoalPageView, superClass);
+
+    function GoalPageView() {
+      return GoalPageView.__super__.constructor.apply(this, arguments);
+    }
+
+    GoalPageView.prototype.events = {
+      'click .edit-goals-btn': 'edit',
+      'click ul.tabs > li': 'onSwitchTabClick'
+    };
+
+    GoalPageView.prototype.initialize = function(options) {
+      var progressGoalsData;
+      this.PROGRESS_GOALS_KEY = 'strava.progressGoals';
+      this.options = options;
+      this.athleteId = options.athleteId;
+      this.weeklyGoalPageView = options.weeklyGoalPageView;
+      this.yearlyGoalPageView = options.yearlyGoalPageView;
+      this.isRedrawing = options.redrawing;
+      this.editGoalsView = new Strava.ProgressGoals.EditGoalsView({
+        el: this.el,
+        athleteId: options.athleteId,
+        weekProgress: options.weekProgress,
+        yearProgress: options.yearProgress
+      });
+      this.containingPage = options.containingPage;
+      this.editGoalsView.on('saveOrCancel', this.refreshModule, this);
+      this.resizeHandler();
+      if (Modernizr.localstorage) {
+        progressGoalsData = JSON.parse(localStorage.getItem(this.PROGRESS_GOALS_KEY));
+        if (progressGoalsData) {
+          return this.switchTab(progressGoalsData.selectedTabName);
+        }
+      }
+    };
+
+    GoalPageView.prototype.render = function() {
+      this.weeklyGoalPageView.renderCharts(true);
+      return this.yearlyGoalPageView.renderCharts();
+    };
+
+    GoalPageView.prototype.edit = function(event) {
+      var content;
+      content = this.$(event.currentTarget).closest('.tab-content');
+      content.find('.js-view').hide();
+      return content.find('.js-edit').show();
+    };
+
+    GoalPageView.prototype.refreshModule = function() {
+      return jQuery.ajax("/athletes/" + this.athleteId + "/goals/goals_sidebar", {
+        data: {
+          'containing_page': this.containingPage
+        },
+        type: 'GET',
+        contentType: 'application/html',
+        dataType: 'html',
+        success: (function(_this) {
+          return function(htmlPartial) {
+            return _this.$el.replaceWith(htmlPartial);
+          };
+        })(this)
+      });
+    };
+
+    GoalPageView.prototype.resizeHandler = function() {
+      var resizeTimeout;
+      if (currentAthlete.get('logged_in') && !this.isRedrawing) {
+        resizeTimeout = null;
+        return jQuery(window).on('resize', _.debounce(((function(_this) {
+          return function() {
+            return _this.refreshModule();
+          };
+        })(this)), 300));
+      }
+    };
+
+    GoalPageView.prototype.onSwitchTabClick = function(event) {
+      var selectedTab, selectedTabName;
+      event.preventDefault();
+      selectedTab = this.$(event.currentTarget);
+      selectedTabName = selectedTab.attr('aria-controls');
+      return this.switchTab(selectedTabName);
+    };
+
+    GoalPageView.prototype.switchTab = function(tabName) {
+      var selectedPanel;
+      selectedPanel = this.$(".tab-contents #" + tabName);
+      if (selectedPanel.length === 0) {
+        return;
+      }
+      if (Modernizr.localstorage) {
+        localStorage.setItem(this.PROGRESS_GOALS_KEY, JSON.stringify({
+          selectedTabName: tabName
+        }));
+      }
+      this.$('li').attr('aria-selected', 'false');
+      this.$("#" + tabName + "-tab").attr('aria-selected', 'true');
+      this.$('.tab-content').attr('aria-hidden', 'true');
+      selectedPanel.attr('aria-hidden', 'false');
+      if (this.containingPage === 'dashboard') {
+        if (tabName === 'relative-effort-goals') {
+          return jQuery('#js-dashboard-athlete-goals').find('.card-footer').hide();
+        } else {
+          return jQuery('#js-dashboard-athlete-goals').find('.card-footer').show();
+        }
+      }
+    };
+
+    return GoalPageView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekActivityView = (function(superClass) {
+    extend(WeekActivityView, superClass);
+
+    WeekActivityView.prototype.WEEKDAY_NAMES = TwitterCldr.Calendar.weekdays({
+      format: 'stand-alone',
+      names_form: 'narrow'
+    });
+
+    WeekActivityView.prototype.WEEKDAY_KEYS = {
+      0: 'mon',
+      1: 'tue',
+      2: 'wed',
+      3: 'thu',
+      4: 'fri',
+      5: 'sat',
+      6: 'sun'
+    };
+
+    function WeekActivityView(options) {
+      WeekActivityView.__super__.constructor.call(this, options);
+      this.canvasHeight = options.canvasDimensions.height;
+      this.canvasWidth = options.canvasDimensions.width;
+      this.chartWidthPercentage = options.chartWidthPercentage;
+      this.volumeData = this.model.volumeForChart();
+      this.currentDayOfWeek = new Date().getDay();
+      if (this.currentDayOfWeek === 0) {
+        this.currentDayOfWeek = 7;
+      }
+      this.setupChart();
+    }
+
+    WeekActivityView.prototype.render = function() {
+      var barContainer, dayLabelContainer;
+      barContainer = d3.select(this.el).selectAll('.volume-bar-container').data(this.volumeData).enter().append('g').attr('transform', (function(_this) {
+        return function(d, i) {
+          return "translate(" + (_this.xScale(i + 1)) + ",0)";
+        };
+      })(this)).attr('class', 'volume-bar-container');
+      barContainer.append('rect').attr('class', (function(_this) {
+        return function(d, i) {
+          return "volume-bar " + (_this.dayOfWeekClass(i));
+        };
+      })(this)).classed('highlighted', (function(_this) {
+        return function(d, i) {
+          return i === _this.currentDayOfWeek - 1;
+        };
+      })(this)).classed('past', (function(_this) {
+        return function(d, i) {
+          return i < _this.currentDayOfWeek - 1;
+        };
+      })(this)).classed('future', (function(_this) {
+        return function(d, i) {
+          return i > _this.currentDayOfWeek - 1;
+        };
+      })(this)).attr('y', (function(_this) {
+        return function(d) {
+          return Math.min(_this.chartHeight - 2, _this.yScale(d));
+        };
+      })(this)).attr('height', (function(_this) {
+        return function(d) {
+          return Math.max(2, _this.chartHeight - _this.yScale(d));
+        };
+      })(this)).attr('width', this.xScale.rangeBand() - 6);
+      return dayLabelContainer = d3.select(this.el).selectAll('.day-label-container').data(this.volumeData).enter().append('g').attr('transform', (function(_this) {
+        return function(d, i) {
+          return "translate(" + (_this.xScale(i + 1)) + "," + (_this.chartHeight + 15) + ")";
+        };
+      })(this)).attr('class', 'day-label-container').append('text').attr('class', (function(_this) {
+        return function(d, i) {
+          return "day-label " + (_this.dayOfWeekClass(i));
+        };
+      })(this)).attr('x', 0).attr('y', 0).text((function(_this) {
+        return function(d, i) {
+          return _this.WEEKDAY_NAMES[_this.WEEKDAY_KEYS[i]];
+        };
+      })(this));
+    };
+
+    WeekActivityView.prototype.setupChart = function() {
+      this.chartMargins = {
+        top: 5,
+        left: 5,
+        bottom: 15,
+        right: 5
+      };
+      this.chartWidth = this.chartWidthPercentage * (this.canvasWidth - (this.chartMargins.left + this.chartMargins.right));
+      this.chartHeight = this.canvasHeight - (this.chartMargins.top + this.chartMargins.bottom);
+      this.xScale = d3.scale.ordinal().domain(d3.range(1, 8)).rangeBands([0, this.chartWidth]);
+      return this.yScale = d3.scale.linear().domain([0, d3.max(this.volumeData)]).range([this.chartHeight, 0]);
+    };
+
+    WeekActivityView.prototype.dayOfWeekClass = function(i) {
+      if (i === this.currentDayOfWeek - 1) {
+        return 'highlighted';
+      } else if (i < this.currentDayOfWeek - 1) {
+        return 'past';
+      } else {
+        return 'future';
+      }
+    };
+
+    return WeekActivityView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekProgressEntry = (function(superClass) {
+    extend(WeekProgressEntry, superClass);
+
+    function WeekProgressEntry(options) {
+      options.id = options.id + "-" + options.sport;
+      WeekProgressEntry.__super__.constructor.call(this, options);
+    }
+
+    WeekProgressEntry.prototype.enhancedAttributes = function() {
+      this.set('has_goal', this.hasGoal());
+      this.set('goal_dimension', this.goalDimension());
+      this.set('actual_dimension', this.actualDimension());
+      this.set('second_dimension', this.secondDimension());
+      this.set('third_dimension', this.thirdDimension());
+      this.set('second_third_dimensions_visibility', this.secondThirdDimensionsVisibility());
+      this.set('no_goal_copy', this.noGoalCopy());
+      return this;
+    };
+
+    WeekProgressEntry.prototype.volumeForChart = function() {
+      var volumeDimension;
+      volumeDimension = this.hasGoal() && this.goalType() === 'TimeGoal' ? 'moving_time' : 'distance';
+      return _.map(this.get('by_day_of_week'), function(byDay) {
+        return _.reduce(_.pluck(byDay.activities, volumeDimension), (function(memo, num) {
+          return memo + num;
+        }), 0);
+      });
+    };
+
+    WeekProgressEntry.prototype.percentageOfGoal = function() {
+      if (this.hasGoal() && this.goalValue() > 0) {
+        return Math.min(this.goalProgress() / this.goalValue(), 1);
+      } else {
+        return 0;
+      }
+    };
+
+    WeekProgressEntry.prototype.goalProgress = function() {
+      if (this.hasGoal()) {
+        if (this.goalType() === 'TimeGoal') {
+          return this.totalMovingTime();
+        } else {
+          return this.totalDistance();
+        }
+      } else {
+        return 0;
+      }
+    };
+
+    WeekProgressEntry.prototype.goalAmount = function() {
+      if (this.hasGoal()) {
+        return this.goalValue();
+      } else {
+        return 0;
+      }
+    };
+
+    WeekProgressEntry.prototype.dimension = function() {
+      var goalType;
+      if (this.hasGoal()) {
+        goalType = this.goalType();
+        if (goalType === 'TimeGoal') {
+          return 'time';
+        } else {
+          return 'distance';
+        }
+      } else {
+        return 'distance';
+      }
+    };
+
+    WeekProgressEntry.prototype.period = function() {
+      return 'week';
+    };
+
+    WeekProgressEntry.prototype.noGoalCopy = function() {
+      return Strava.I18n.Locale.t('strava.progress_goals.week_progress_entry.set_goal');
+    };
+
+    WeekProgressEntry.prototype.hasGoal = function() {
+      return this.singleSportDisplayType() === 'time_goal' || this.singleSportDisplayType() === 'distance_goal';
+    };
+
+    WeekProgressEntry.prototype.goalDimension = function() {
+      var formatter;
+      if (this.singleSportDisplayType() === 'time_goal') {
+        return new Strava.I18n.TimespanFormatter().abbreviatedHours(this.goalValue(), false);
+      } else if (this.singleSportDisplayType() === 'distance_goal') {
+        formatter = this.sport() === 'swim' ? new Strava.I18n.SwimDistanceFormatter() : new Strava.I18n.GoalDistanceFormatter();
+        return formatter.formatShort(this.goalValue());
+      }
+    };
+
+    WeekProgressEntry.prototype.actualDimension = function() {
+      if (this.singleSportDisplayType() === 'time_goal') {
+        return new Strava.I18n.TimespanFormatter().abbreviated(this.totalMovingTime(), false);
+      } else if (this.singleSportDisplayType() === 'distance_goal') {
+        return new Strava.I18n.DistanceFormatter().format(this.totalDistance(), 1, false);
+      } else if (this.singleSportDisplayType() === 'distance_no_goal') {
+        return new Strava.I18n.DistanceFormatter().formatShort(this.totalDistance(), 1, false);
+      }
+    };
+
+    WeekProgressEntry.prototype.secondDimension = function() {
+      if (this.singleSportDisplayType() === 'time_goal') {
+        return new Strava.I18n.DistanceFormatter().formatShort(this.totalDistance(), 1, false);
+      } else if (this.singleSportDisplayType() === 'distance_goal' || this.singleSportDisplayType() === 'distance_no_goal') {
+        return new Strava.I18n.TimespanFormatter().abbreviated(this.totalMovingTime(), false);
+      }
+    };
+
+    WeekProgressEntry.prototype.thirdDimension = function() {
+      return new Strava.I18n.ElevationFormatter().formatShort(this.totalElevGain());
+    };
+
+    WeekProgressEntry.prototype.secondThirdDimensionsVisibility = function() {
+      if (this.totalDistance() > 0) {
+        return '';
+      } else {
+        return 'no-activity';
+      }
+    };
+
+    WeekProgressEntry.prototype.goalType = function() {
+      return this.goalObj().type;
+    };
+
+    WeekProgressEntry.prototype.goalValue = function() {
+      return this.goalObj().goal;
+    };
+
+    WeekProgressEntry.prototype.goalObj = function() {
+      return this.get('goals_by_sport')[this.sport()];
+    };
+
+    WeekProgressEntry.prototype.totalDistance = function() {
+      return this.totalsForSport()['distance'];
+    };
+
+    WeekProgressEntry.prototype.totalMovingTime = function() {
+      return this.totalsForSport()['moving_time'];
+    };
+
+    WeekProgressEntry.prototype.totalElevGain = function() {
+      return this.totalsForSport()['elev_gain'];
+    };
+
+    WeekProgressEntry.prototype.singleSportDisplayType = function() {
+      var displayType;
+      displayType = this.get('display_type');
+      if (displayType === 'multisport_goal') {
+        if (this.goalObj() && this.goalValue() > 0) {
+          if (this.goalType() === 'TimeGoal') {
+            return 'time_goal';
+          } else if (this.goalType() === 'DistanceGoal') {
+            return 'distance_goal';
+          }
+        } else {
+          return 'distance_no_goal';
+        }
+      } else {
+        return displayType;
+      }
+    };
+
+    WeekProgressEntry.prototype.totalsForSport = function() {
+      return this.get('totals_by_sport')[this.sport()];
+    };
+
+    WeekProgressEntry.prototype.sport = function() {
+      return this.get('sport');
+    };
+
+    return WeekProgressEntry;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekProgress = (function(superClass) {
+    extend(WeekProgress, superClass);
+
+    WeekProgress.prototype.model = Strava.ProgressGoals.WeekProgressEntry;
+
+    function WeekProgress(athleteId, models) {
+      this.athleteId = athleteId;
+      WeekProgress.__super__.constructor.call(this, models);
+    }
+
+    WeekProgress.prototype.visibleSports = function() {
+      return this.filter(function(weekProgressEntry, i) {
+        return i === 0 || weekProgressEntry.hasGoal();
+      });
+    };
+
+    WeekProgress.prototype.url = function() {
+      return "/athletes/" + this.athleteId + "/goals/current_week";
+    };
+
+    return WeekProgress;
+
+  })(Backbone.Collection);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekProgressUpsellEntry = (function(superClass) {
+    extend(WeekProgressUpsellEntry, superClass);
+
+    function WeekProgressUpsellEntry() {
+      return WeekProgressUpsellEntry.__super__.constructor.apply(this, arguments);
+    }
+
+    WeekProgressUpsellEntry.prototype.volumeForChart = function() {
+      return this.get('volume_by_day');
+    };
+
+    WeekProgressUpsellEntry.prototype.percentageOfGoal = function() {
+      return this.get('percentage_of_goal');
+    };
+
+    return WeekProgressUpsellEntry;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekProgressView = (function(superClass) {
+    var ANIMATION_DURATION, INNER_RADIUS, OUTER_RADIUS, SPORT_IMAGE_HEIGHT, SPORT_IMAGE_WIDTH;
+
+    extend(WeekProgressView, superClass);
+
+    INNER_RADIUS = 30;
+
+    OUTER_RADIUS = 32;
+
+    SPORT_IMAGE_WIDTH = 28;
+
+    SPORT_IMAGE_HEIGHT = 28;
+
+    ANIMATION_DURATION = 1000;
+
+    function WeekProgressView(options) {
+      WeekProgressView.__super__.constructor.call(this, options);
+      this.canvasHeight = options.canvasDimensions.height;
+      this.canvasWidth = options.canvasDimensions.width;
+      this.imagePath = options.imagePath;
+      this.percentageOfGoal = this.model.percentageOfGoal();
+      this.setupChart();
+    }
+
+    WeekProgressView.prototype.render = function() {
+      var arc, arcTween, bg, iconOpacity, progressArc, progressContainer, tau;
+      tau = 2 * Math.PI;
+      arc = d3.svg.arc().innerRadius(INNER_RADIUS).outerRadius(OUTER_RADIUS).startAngle(0);
+      progressContainer = d3.select(this.el).append('g').attr('transform', "translate(" + (this.chartWidth / 2) + "," + (this.chartHeight / 2) + ")").attr('class', 'progress-container');
+      if (this.percentageOfGoal === 1) {
+        progressContainer.append('circle').attr('r', OUTER_RADIUS).attr('class', 'goal-complete');
+      }
+      bg = progressContainer.append('path').datum({
+        endAngle: tau
+      }).attr('class', 'bg-circle').attr('d', arc);
+      iconOpacity = '0.20';
+      if (this.percentageOfGoal > 0) {
+        iconOpacity = '0.60';
+      }
+      progressContainer.append('image').attr('transform', 'translate(-14, -14)').attr('class', 'sport-type').attr('xlink:href', this.imagePath).attr('width', SPORT_IMAGE_WIDTH).attr('height', SPORT_IMAGE_HEIGHT).attr('opacity', iconOpacity);
+      if (this.percentageOfGoal > 0) {
+        progressArc = progressContainer.append('path').datum({
+          endAngle: 0
+        }).attr('d', arc).attr('class', 'progress-bar');
+        arcTween = function(transition, newEndAngle) {
+          return transition.attrTween('d', function(d) {
+            var interpolate;
+            interpolate = d3.interpolate(d.endAngle, newEndAngle);
+            return function(t) {
+              d.endAngle = interpolate(t);
+              return arc(d);
+            };
+          });
+        };
+        return progressArc.transition().duration(ANIMATION_DURATION).call(arcTween, this.percentageOfGoal * tau);
+      }
+    };
+
+    WeekProgressView.prototype.setupChart = function() {
+      this.chartMargins = {
+        top: 5,
+        left: 5,
+        bottom: 5,
+        right: 5
+      };
+      this.chartWidth = .5 * (this.canvasWidth - (this.chartMargins.left + this.chartMargins.right));
+      return this.chartHeight = this.canvasHeight - (this.chartMargins.top + this.chartMargins.bottom);
+    };
+
+    return WeekProgressView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['progress_goals/stats_view'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<span class='actual'>" + ($c(this.stats.actual_dimension)) + "</span>");
+      if (this.stats.has_goal) {
+        $o.push("" + $c("/ " + this.stats.goal_dimension));
+      }
+      if (this.stats.has_goal) {
+        $o.push("<ul class='" + (['inline-stats', "" + ($e($c(this.stats.second_third_dimensions_visibility)))].sort().join(' ').replace(/^\s+|\s+$/g, '')) + "'>\n  <li>" + ($c(this.stats.second_dimension)) + "</li>\n  <li>" + ($c(this.stats.third_dimension)) + "</li>\n</ul>");
+      } else {
+        $o.push("<div class='upsell-sm'>\n  <div class='bw sm strava-echelon'></div>\n  <span class='clickable minimal'>" + ($e($c(this.stats.no_goal_copy))) + "</span>\n</div>");
+      }
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekStatsView = (function(superClass) {
+    extend(WeekStatsView, superClass);
+
+    function WeekStatsView() {
+      return WeekStatsView.__super__.constructor.apply(this, arguments);
+    }
+
+    WeekStatsView.prototype.template = 'progress_goals/stats_view';
+
+    WeekStatsView.prototype.render = function() {
+      return this.renderTemplate({
+        stats: this.model.enhancedAttributes().toJSON()
+      });
+    };
+
+    return WeekStatsView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['progress_goals/week_view'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div class='primary-stats'></div>\n<svg width='" + ($e($c(190))) + "' height='" + ($e($c(68))) + "'>\n  <g class='activity-chart' transform='translate(5, 5)'></g>\n  <g class='progress-chart' transform='translate(110, 7)'></g>\n</svg>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekUpsellView = (function(superClass) {
+    extend(WeekUpsellView, superClass);
+
+    WeekUpsellView.prototype.template = 'progress_goals/week_view';
+
+    function WeekUpsellView(options) {
+      options.el = this.$$(options.elSelector);
+      WeekUpsellView.__super__.constructor.call(this, options);
+      this.activityChartClass = options.activityChartClass;
+      this.progressChartClass = options.progressChartClass;
+      this.chartWidthPercentage = options.chartWidthPercentage;
+      this.rideImagePath = options.rideImagePath;
+      this.runImagePath = options.runImagePath;
+      this.model = new Strava.ProgressGoals.WeekProgressUpsellEntry(options.modelAttributes);
+    }
+
+    WeekUpsellView.prototype.renderCharts = function() {
+      var $svg, canvasDimensions;
+      $svg = this.$('svg');
+      canvasDimensions = {
+        width: $svg.attr('width'),
+        height: $svg.attr('height')
+      };
+      new Strava.ProgressGoals.WeekActivityView({
+        model: this.model,
+        el: this.$("." + this.activityChartClass),
+        canvasDimensions: canvasDimensions,
+        chartWidthPercentage: this.chartWidthPercentage
+      }).render();
+      return new Strava.ProgressGoals.WeekProgressView({
+        model: this.model,
+        el: this.$("." + this.progressChartClass),
+        imagePath: this.imagePath(),
+        canvasDimensions: canvasDimensions
+      }).render();
+    };
+
+    WeekUpsellView.prototype.imagePath = function() {
+      var sportImages;
+      sportImages = '';
+      if (this.model.get('sport') === 'ride') {
+        sportImages = this.rideImagePath;
+      } else if (this.model.get('sport') === 'run') {
+        sportImages = this.runImagePath;
+      } else {
+        sportImages = this.swimImagePath;
+      }
+      return sportImages;
+    };
+
+    return WeekUpsellView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeekView = (function(superClass) {
+    extend(WeekView, superClass);
+
+    WeekView.prototype.template = 'progress_goals/week_view';
+
+    function WeekView(options) {
+      WeekView.__super__.constructor.call(this, options);
+      this.activityChartClass = options.activityChartClass;
+      this.progressChartClass = options.progressChartClass;
+      this.chartWidthPercentage = options.chartWidthPercentage;
+      this.rideImagePath = options.rideImagePath;
+      this.runImagePath = options.runImagePath;
+      this.swimImagePath = options.swimImagePath;
+    }
+
+    WeekView.prototype.render = function() {
+      this.renderTemplate({});
+      this.$el.addClass('row').addClass('week');
+      this.renderStats();
+      this.renderCharts();
+      return this;
+    };
+
+    WeekView.prototype.renderStats = function() {
+      return new Strava.ProgressGoals.WeekStatsView({
+        model: this.model,
+        el: this.$('.primary-stats')
+      }).render();
+    };
+
+    WeekView.prototype.renderCharts = function() {
+      var $svg, canvasDimensions;
+      $svg = this.$('svg');
+      canvasDimensions = {
+        width: $svg.attr('width'),
+        height: $svg.attr('height')
+      };
+      new Strava.ProgressGoals.WeekActivityView({
+        model: this.model,
+        el: this.$("." + this.activityChartClass),
+        canvasDimensions: canvasDimensions,
+        chartWidthPercentage: this.chartWidthPercentage
+      }).render();
+      return new Strava.ProgressGoals.WeekProgressView({
+        model: this.model,
+        el: this.$("." + this.progressChartClass),
+        imagePath: this.imagePath(),
+        canvasDimensions: canvasDimensions
+      }).render();
+    };
+
+    WeekView.prototype.imagePath = function() {
+      var sportImages;
+      sportImages = '';
+      if (this.model.get('sport') === 'ride') {
+        sportImages = this.rideImagePath;
+      } else if (this.model.get('sport') === 'run') {
+        sportImages = this.runImagePath;
+      } else {
+        sportImages = this.swimImagePath;
+      }
+      return sportImages;
+    };
+
+    return WeekView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['performance_goals/tooltip'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div id='js-snw-performance-goals-upsell'>\n  <a class='dismiss' href='javascript:;'>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.dismiss'))));
+      $o.push("  </a>\n  <h4 class='h5 title'>\n    <div class='badge premium sm'></div>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.goals'))));
+      $o.push("  </h4>\n  <div class='content'>");
+      $o.push("    " + $c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.upsell_v3_html')));
+      $o.push("  </div>\n  <div class='arrow bottom'></div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Ui');
+
+  Strava.Ui.TooltipView = (function(superClass) {
+    extend(TooltipView, superClass);
+
+    TooltipView.prototype.tagName = 'div';
+
+    TooltipView.prototype.className = 'super-tooltip';
+
+    TooltipView.prototype.attributes = {
+      style: 'display: none'
+    };
+
+    TooltipView.prototype.events = {
+      'click .dismiss': 'dismissTooltip'
+    };
+
+    function TooltipView(template) {
+      TooltipView.__super__.constructor.call(this);
+      if (JST[template]) {
+        this.template = template;
+      } else {
+        this.createTemplate(template);
+      }
+    }
+
+    TooltipView.prototype.render = function(data, target) {
+      this.renderTemplate({
+        data: this.prepareData(data)
+      });
+      this.delegateEvents();
+      this.show(target);
+      return this;
+    };
+
+    TooltipView.prototype.prepareData = function(data) {
+      return data;
+    };
+
+    TooltipView.prototype.show = function(target) {
+      var $arrow, anchor, positionLeft, positionTop, shifted, target_pos;
+      this.$$('.super-tooltip').remove();
+      this.$$('body').append(this.el);
+      anchor = this.$$(target);
+      target_pos = anchor.offset();
+      $arrow = this.$('div.arrow');
+      if ($arrow.hasClass('top')) {
+        positionTop = target_pos.top + anchor.outerHeight() + 10;
+      } else {
+        positionTop = target_pos.top - (this.$el.height() + 15);
+      }
+      shifted = false;
+      if (positionTop < 0) {
+        positionTop = 0;
+        shifted = true;
+      } else if (positionTop + this.$el.outerHeight() > this.$$(window).height() + window.pageYOffset) {
+        positionTop = this.$$(window).height() + window.pageYOffset - this.$el.outerHeight();
+        shifted = true;
+      }
+      positionLeft = target_pos.left - this.$el.width() / 2 + anchor.outerWidth() / 2;
+      if (positionLeft < 0) {
+        positionLeft = 0;
+        shifted = true;
+      } else if (positionLeft + this.$el.outerWidth() > this.$$(window).width() + window.pageXOffset) {
+        positionLeft = this.$$(window).width() + window.pageXOffset - this.$el.outerWidth();
+        shifted = true;
+      }
+      if (shifted) {
+        $arrow.hide();
+      }
+      this.$el.css({
+        left: positionLeft,
+        top: positionTop
+      });
+      return this.$el.fadeIn('fast');
+    };
+
+    TooltipView.prototype.dismissTooltip = function() {
+      this.$el.remove();
+      return false;
+    };
+
+    TooltipView.createInstance = function(template, klass) {
+      if (this.instance == null) {
+        this.instance = new klass(template);
+        this.instance.$document().click((function(_this) {
+          return function(e) {
+            if (_this.instance.$el.is(':visible') && !jQuery(e.target).parents('.super-tooltip').length) {
+              return _this.instance.dismissTooltip();
+            }
+          };
+        })(this));
+      }
+      return this.instance;
+    };
+
+    TooltipView.show = function(data, target) {
+      return this.instance.render(data, target);
+    };
+
+    return TooltipView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['ui/premium_tooltip'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<button class='btn btn-unstyled btn-xs dismiss' title='" + ($e($c(Strava.I18n.Locale.t('templates.ui.premium_tooltip.dismiss')))) + "'>\n  <div class='app-icon icon-close icon-dark icon-xs'></div>\n</button>\n<div class='centered text-center tooltip-block'>\n  <div class='app-icon icon-badge-premium icon-sm mb-xs'></div>\n  <p>" + ($e($c(Strava.I18n.Locale.t('templates.ui.premium_tooltip.copy_v2')))) + "</p>\n  <a class='btn btn-primary btn-sm button' id='js-snw-segment-set-goal-upsell-cta' href='" + ($e($c(this.data.url))) + "'>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.ui.premium_tooltip.join_summit'))));
+      $o.push("  </a>\n</div>\n<div class='bottom tooltip-arrow'></div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.WeeklyGoalPageView = (function(superClass) {
+    extend(WeeklyGoalPageView, superClass);
+
+    function WeeklyGoalPageView(options) {
+      options.el = this.$$(options.elSelector);
+      WeeklyGoalPageView.__super__.constructor.call(this, options);
+      this.activityChartClass = options.activityChartClass;
+      this.progressChartClass = options.progressChartClass;
+      this.rideImagePath = options.rideImagePath;
+      this.runImagePath = options.runImagePath;
+      this.swimImagePath = options.swimImagePath;
+      this.chartWidthPercentage = options.chartWidthPercentage;
+    }
+
+    WeeklyGoalPageView.prototype.renderCharts = function(allCharts) {
+      var sports;
+      if (allCharts == null) {
+        allCharts = false;
+      }
+      sports = allCharts ? this.collection : this.collection.visibleSports();
+      return sports.forEach((function(_this) {
+        return function(weekProgressEntry) {
+          return new Strava.ProgressGoals.WeekView({
+            el: _this.$("#" + (weekProgressEntry.get('sport'))),
+            model: weekProgressEntry,
+            activityChartClass: _this.activityChartClass,
+            progressChartClass: _this.progressChartClass,
+            chartWidthPercentage: _this.chartWidthPercentage,
+            rideImagePath: _this.rideImagePath,
+            runImagePath: _this.runImagePath,
+            swimImagePath: _this.swimImagePath
+          }).renderCharts();
+        };
+      })(this));
+    };
+
+    return WeeklyGoalPageView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoal = (function(superClass) {
+    extend(YearlyGoal, superClass);
+
+    function YearlyGoal() {
+      return YearlyGoal.__super__.constructor.apply(this, arguments);
+    }
+
+    YearlyGoal.prototype.dimension = function() {
+      if (this.get('goal_type') === 'TimeGoal') {
+        return 'time';
+      } else {
+        return 'distance';
+      }
+    };
+
+    YearlyGoal.prototype.period = function() {
+      return 'year';
+    };
+
+    YearlyGoal.prototype.goalAmount = function() {
+      return this.get('goal_amount');
+    };
+
+    return YearlyGoal;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoalChart = (function() {
+    var ANIMATION_DURATION, DIMS, DIMS_FULL_WIDTH, PROGRESS_BAR_DIMS, TOOLTIP_DIMS, TOOLTIP_DIMS_FULL_WIDTH;
+
+    ANIMATION_DURATION = 1000;
+
+    DIMS = {
+      height: 34,
+      width: 186,
+      padding: {
+        top: 14,
+        bottom: 0,
+        left: 20,
+        right: 10
+      }
+    };
+
+    DIMS_FULL_WIDTH = {
+      height: 50,
+      padding: {
+        top: 14,
+        bottom: 0,
+        left: 20,
+        right: 0
+      }
+    };
+
+    PROGRESS_BAR_DIMS = {
+      height: 15,
+      width: 186
+    };
+
+    TOOLTIP_DIMS = {
+      top: DIMS.height + 5,
+      left: DIMS.padding.left
+    };
+
+    TOOLTIP_DIMS_FULL_WIDTH = {
+      top: DIMS_FULL_WIDTH.height + 5,
+      left: DIMS_FULL_WIDTH.padding.left
+    };
+
+    function YearlyGoalChart(selector, dataContext, showGoalLabel, width) {
+      this.selector = selector;
+      this.dataContext = dataContext;
+      if (showGoalLabel == null) {
+        showGoalLabel = true;
+      }
+      if (width == null) {
+        width = null;
+      }
+      this.showGoalLabel = showGoalLabel;
+      this.width = width;
+    }
+
+    YearlyGoalChart.prototype.render = function() {
+      d3.select(this.selector).empty();
+      return this.createComponents();
+    };
+
+    YearlyGoalChart.prototype.createComponents = function() {
+      this.svg = d3.select(this.selector).append('svg').attr('width', this.dims().width).attr('height', this.dims().height).attr('class', 'progress-bar-svg-container');
+      this.mainGroup = this.svg.append('g').attr('transform', "translate(0, " + (this.dims().padding.top) + ")");
+      this.createScales();
+      if (this.dataContext.showTooltip()) {
+        this.createTooltip();
+      }
+      this.createProgressBar();
+      if (this.showGoalLabel) {
+        return this.createLabel();
+      }
+    };
+
+    YearlyGoalChart.prototype.createScales = function() {
+      return this.xScale = d3.scale.linear().domain(this.dataContext.progressExtent()).range([0, this.progressBarDims().width]).clamp(true);
+    };
+
+    YearlyGoalChart.prototype.createTooltip = function() {
+      var elem;
+      elem = jQuery(this.selector).parent();
+      return this.tooltip = new Strava.ProgressGoals.YearlyGoalTooltip(elem, this.dataContext.tooltipLabel(), this.tooltipDims());
+    };
+
+    YearlyGoalChart.prototype.createProgressBar = function() {
+      var progressBar, textAnchor, textOffset, x, y;
+      x = this.xScale(this.dataContext.projectedProgress());
+      y = this.progressBarDims().height;
+      this.mainGroup.append('rect').attr('height', this.progressBarDims().height).attr('width', this.progressBarDims().width).attr('class', 'progress-bar-container').on('mouseover', (function(_this) {
+        return function() {
+          return _this.showTooltip(x);
+        };
+      })(this)).on('mouseout', (function(_this) {
+        return function() {
+          return _this.hideTooltip();
+        };
+      })(this));
+      if (this.dataContext.showProgress()) {
+        progressBar = this.mainGroup.append('rect').attr('height', this.progressBarDims().height).attr('width', 0).attr('class', 'progress-bar-fill').on('mouseover', (function(_this) {
+          return function() {
+            return _this.showTooltip(x);
+          };
+        })(this)).on('mouseout', (function(_this) {
+          return function() {
+            return _this.hideTooltip();
+          };
+        })(this));
+        progressBar.transition().duration(ANIMATION_DURATION).attr('width', this.xScale(this.dataContext.progress()));
+      }
+      this.mainGroup.append('line').attr('x1', this.xScale(this.dataContext.projectedProgress())).attr('x2', this.xScale(this.dataContext.projectedProgress())).attr('y1', 0).attr('y2', this.progressBarDims().height + 5).attr('class', 'progress-marker');
+      if (this.width) {
+        textOffset = this.dataContext.percentYearComplete() < .5 ? -10 : 10;
+        textAnchor = this.dataContext.percentYearComplete() < .5 ? 'start' : 'end';
+        return this.svg.append('text').attr('text-anchor', textAnchor).attr('x', this.xScale(this.dataContext.projectedProgress()) + textOffset).attr('y', this.progressBarDims().height + 32).attr('class', 'today-label').text(this.dataContext.todayLabel());
+      } else {
+        return this.mainGroup.append('polygon').attr('points', x + ", " + y + " " + (x + 3) + ", " + (y + 5) + " " + (x - 3) + ", " + (y + 5));
+      }
+    };
+
+    YearlyGoalChart.prototype.createLabel = function() {
+      return this.svg.append('text').attr('text-anchor', 'end').attr('x', this.progressBarDims().width).attr('y', 10).attr('class', this.dataContext.goalTextClasses()).text(this.dataContext.goalLabel());
+    };
+
+    YearlyGoalChart.prototype.showTooltip = function(x) {
+      if (this.tooltip) {
+        return this.tooltip.show(x);
+      }
+    };
+
+    YearlyGoalChart.prototype.hideTooltip = function() {
+      if (this.tooltip) {
+        return this.tooltip.hide();
+      }
+    };
+
+    YearlyGoalChart.prototype.dims = function() {
+      if (this.width) {
+        return {
+          height: DIMS_FULL_WIDTH.height,
+          width: this.width,
+          padding: DIMS_FULL_WIDTH.padding
+        };
+      } else {
+        return DIMS;
+      }
+    };
+
+    YearlyGoalChart.prototype.progressBarDims = function() {
+      if (this.width) {
+        return {
+          height: 10,
+          width: this.width
+        };
+      } else {
+        return PROGRESS_BAR_DIMS;
+      }
+    };
+
+    YearlyGoalChart.prototype.tooltipDims = function() {
+      if (this.width) {
+        return TOOLTIP_DIMS_FULL_WIDTH;
+      } else {
+        return TOOLTIP_DIMS;
+      }
+    };
+
+    return YearlyGoalChart;
+
+  })();
+
+}).call(this);
+(function() {
+  var bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoalDataContext = (function() {
+    function YearlyGoalDataContext(sportData, athletePremium) {
+      this.sportData = sportData;
+      this.athletePremium = athletePremium;
+      this.goalTextClasses = bind(this.goalTextClasses, this);
+      this.tooltipLabel = bind(this.tooltipLabel, this);
+    }
+
+    YearlyGoalDataContext.prototype.showProgress = function() {
+      return this.athletePremium;
+    };
+
+    YearlyGoalDataContext.prototype.sport = function() {
+      return this.sportData.get('sport');
+    };
+
+    YearlyGoalDataContext.prototype.goalLabel = function() {
+      return this.sportData.get('goal_label');
+    };
+
+    YearlyGoalDataContext.prototype.todayLabel = function() {
+      return this.sportData.get('today_label');
+    };
+
+    YearlyGoalDataContext.prototype.progressExtent = function() {
+      return [0, _.max([this.sportData.get('progress_extent'), 1])];
+    };
+
+    YearlyGoalDataContext.prototype.progress = function() {
+      return this.sportData.get('progress');
+    };
+
+    YearlyGoalDataContext.prototype.projectedProgress = function() {
+      return this.progressExtent()[1] * this.sportData.get('percent_year_complete');
+    };
+
+    YearlyGoalDataContext.prototype.percentYearComplete = function() {
+      return this.sportData.get('percent_year_complete');
+    };
+
+    YearlyGoalDataContext.prototype.showTooltip = function() {
+      return this.sportData.get('show_tooltip');
+    };
+
+    YearlyGoalDataContext.prototype.tooltipLabel = function() {
+      return this.sportData.get('tooltip_label');
+    };
+
+    YearlyGoalDataContext.prototype.goalTextClasses = function() {
+      if (this.sportData.get('goal_met')) {
+        return 'goal-label goal-completed-label';
+      } else {
+        return 'goal-label';
+      }
+    };
+
+    return YearlyGoalDataContext;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoalPageView = (function(superClass) {
+    extend(YearlyGoalPageView, superClass);
+
+    function YearlyGoalPageView(options) {
+      options.el = this.$$(options.elSelector);
+      YearlyGoalPageView.__super__.constructor.call(this, options);
+      this.rideImagePath = options.rideImagePath;
+      this.runImagePath = options.runImagePath;
+      this.swimImagePath = options.swimImagePath;
+      this.charts = this.collection.map((function(_this) {
+        return function(goalForSport) {
+          var chartSelector, dataContext;
+          chartSelector = options.elSelector + " #" + (goalForSport.get('sport').toLowerCase()) + "-yearly-progress-container .chart-container";
+          dataContext = new Strava.ProgressGoals.YearlyGoalDataContext(goalForSport, options.athletePremium);
+          return new Strava.ProgressGoals.YearlyGoalChart(chartSelector, dataContext, false, options.width);
+        };
+      })(this));
+    }
+
+    YearlyGoalPageView.prototype.renderCharts = function() {
+      return this.charts.forEach((function(_this) {
+        return function(chart) {
+          return chart.render();
+        };
+      })(this));
+    };
+
+    return YearlyGoalPageView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoalTooltip = (function() {
+    function YearlyGoalTooltip(container, htmlString, offsets) {
+      this.container = container;
+      this.offsets = offsets;
+      this.$tooltip = jQuery('<div></div>').html(htmlString).attr('class', 'yearly-goal-tooltip');
+      this.container.append(this.$tooltip);
+    }
+
+    YearlyGoalTooltip.prototype.show = function(x) {
+      var progressBarOffset;
+      progressBarOffset = this.container.width() - this.container.find('.chart-container svg').width();
+      this.$tooltip.css('top', this.offsets.top + "px");
+      this.$tooltip.css('left', (progressBarOffset + this.offsets.left + x - (this.$tooltip.outerWidth() / 2)) + "px");
+      return this.$tooltip.addClass('yearly-goal-tooltip-visible');
+    };
+
+    YearlyGoalTooltip.prototype.hide = function() {
+      return this.$tooltip.removeClass('yearly-goal-tooltip-visible');
+    };
+
+    return YearlyGoalTooltip;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.ProgressGoals');
+
+  Strava.ProgressGoals.YearlyGoals = (function(superClass) {
+    extend(YearlyGoals, superClass);
+
+    function YearlyGoals() {
+      return YearlyGoals.__super__.constructor.apply(this, arguments);
+    }
+
+    YearlyGoals.prototype.model = Strava.ProgressGoals.YearlyGoal;
+
+    return YearlyGoals;
+
+  })(Backbone.Collection);
+
+}).call(this);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+  Strava.module('Strava.Tracking');
+
+  Strava.Tracking.ImpressionTrackerSet = (function() {
+    function ImpressionTrackerSet() {
+      this.trackers = {};
+    }
+
+    ImpressionTrackerSet.prototype.addTracker = function(tracker, trackerGA) {
+      if (this.trackers[tracker]) {
+        return;
+      }
+      return this.trackers[tracker] = {
+        tracker: tracker,
+        ga: trackerGA
+      };
+    };
+
+    ImpressionTrackerSet.prototype.pageEnter = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.pageEnter());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.pageExit = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.pageExit());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.hide = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.hide());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.show = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.show());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.count = function() {
+      return Object.keys(this.trackers).length;
+    };
+
+    ImpressionTrackerSet.prototype.reset = function() {
+      var data, key, ref;
+      ref = this.trackers;
+      for (key in ref) {
+        data = ref[key];
+        data.tracker.pageExit();
+        data.ga.remove();
+      }
+      return this.trackers = {};
+    };
+
+    return ImpressionTrackerSet;
+
+  })();
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Util');
+
+  Strava.Util.Autotrack = (function() {
+    var PAGE_VISIBILITY_TIMEOUT, instance;
+
+    PAGE_VISIBILITY_TIMEOUT = 60 * 24;
+
+    function Autotrack() {
+      this.impressionTrackerSet = new Strava.Tracking.ImpressionTrackerSet();
+      this.pageVisibilityTracker = null;
+    }
+
+    Autotrack.prototype.setPageVisibilityTracker = function(tracker) {
+      this.pageVisibilityTracker = tracker;
+      this.pageVisibilityTracker.on('pageEnter', (function(_this) {
+        return function() {
+          return _this.impressionTrackerSet.pageEnter();
+        };
+      })(this));
+      return this.pageVisibilityTracker.on('pageExit', (function(_this) {
+        return function() {
+          return _this.impressionTrackerSet.pageExit();
+        };
+      })(this));
+    };
+
+    Autotrack.prototype.addImpressionTracker = function(tracker, impressionTrackerGA) {
+      return this.impressionTrackerSet.addTracker(tracker, impressionTrackerGA);
+    };
+
+    Autotrack.prototype.setClioTracker = function(clioTracker) {
+      return this.clioTracker = clioTracker;
+    };
+
+    Autotrack.prototype.getClioTracker = function() {
+      return this.clioTracker;
+    };
+
+    Autotrack.prototype.handleUnload = function() {
+      return this.impressionTrackerSet.pageExit();
+    };
+
+    Autotrack.prototype.handleImpressionReset = function() {
+      return this.impressionTrackerSet.reset();
+    };
+
+    Autotrack.prototype.handleImpressionHide = function() {
+      return this.impressionTrackerSet.hide();
+    };
+
+    Autotrack.prototype.handleImpressionShow = function() {
+      return this.impressionTrackerSet.show();
+    };
+
+    Autotrack.prototype.handleImpressionAppend = function(entityIds) {
+      return Strava.Feed.ImpressionTracker.configure(entityIds, this.clioTracker);
+    };
+
+    instance = null;
+
+    Autotrack.getInstance = function() {
+      if (!instance) {
+        instance = new this();
+      }
+      return instance;
+    };
+
+    Autotrack.configureImpressionTracker = function(tracker) {
+      var impressionTrackerGA;
+      impressionTrackerGA = this.createPlugin('ImpressionTracker', tracker, {
+        attributePrefix: 'str-',
+        elements: tracker.entities()
+      });
+      return this.getInstance().addImpressionTracker(tracker, impressionTrackerGA);
+    };
+
+    Autotrack.configurePageVisibilityTracker = function(tracker) {
+      this.createPlugin('PageVisibilityTracker', tracker, {
+        changeTemplate: (function(oldValue, newValue) {
+          return newValue;
+        }),
+        sessionTimeout: PAGE_VISIBILITY_TIMEOUT
+      });
+      return this.getInstance().setPageVisibilityTracker(tracker);
+    };
+
+    Autotrack.configureEventTracker = function(tracker) {
+      return this.createPlugin('EventTracker', tracker, {
+        attributePrefix: 'str-'
+      });
+    };
+
+    Autotrack.createPlugin = function(plugin, tracker, options) {
+      if (typeof gaplugins !== "undefined" && gaplugins !== null) {
+        return new gaplugins[plugin](tracker, options);
+      } else {
+        console.log('gaplugins not found');
+        return null;
+      }
+    };
+
+    Autotrack.configurePage = function(formAuthenticityToken, currentAthleteId, callback) {
+      var analyticsConfiguration, autotrack;
+      analyticsConfiguration = {
+        remote_logger: {
+          request_headers: {
+            'X-CSRF-Token': formAuthenticityToken
+          }
+        }
+      };
+      return autotrack = this.getInstance();
+    };
+
+    Autotrack.configureMore = function(callback) {
+      var autotrack;
+      autotrack = this.getInstance();
+      return callback(autotrack.getClioTracker());
+    };
+
+    return Autotrack;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.EventTracker = (function(superClass) {
+    extend(EventTracker, superClass);
+
+    function EventTracker() {
+      return EventTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    EventTracker.prototype.initialize = function(attributes, options) {
+      return this.clioClient = options.clioClient;
+    };
+
+    EventTracker.prototype.send = function(hitType, data) {
+      if (data.type === 'anchor_container') {
+        return this.handleAnchorContainer(hitType, data);
+      } else {
+        return this.clioClient.trackClick(data.trackableId, data.type, data.targetUrl);
+      }
+    };
+
+    EventTracker.prototype.handleAnchorContainer = function(hitType, data) {
+      var clickType;
+      if (data.targetTagName !== 'A') {
+        return;
+      }
+      clickType = data.click_type ? data.click_type : 'link';
+      return this.clioClient.trackClick(data.trackableId, clickType, data.targetUrl);
+    };
+
+    EventTracker.configure = function(clioClient) {
+      var tracker;
+      tracker = new this({}, {
+        clioClient: clioClient
+      });
+      return Strava.Util.Autotrack.configureEventTracker(tracker);
+    };
+
+    return EventTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.PageVisibilityTracker = (function(superClass) {
+    extend(PageVisibilityTracker, superClass);
+
+    function PageVisibilityTracker() {
+      return PageVisibilityTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    PageVisibilityTracker.prototype.send = function(type, data) {
+      if (type === 'event') {
+        if (data.eventLabel === 'visible') {
+          return this.trigger('pageEnter');
+        } else if (data.eventLabel === 'hidden') {
+          return this.trigger('pageExit');
+        }
+      }
+    };
+
+    PageVisibilityTracker.configure = function() {
+      var tracker;
+      tracker = new this;
+      return Strava.Util.Autotrack.configurePageVisibilityTracker(tracker);
+    };
+
+    return PageVisibilityTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.ImpressionTracker = (function(superClass) {
+    var generateId;
+
+    extend(ImpressionTracker, superClass);
+
+    function ImpressionTracker() {
+      return ImpressionTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    ImpressionTracker.prototype.initialize = function(attributes, options) {
+      this.clioClient = options.clioClient;
+      this.entityStates = {};
+      return this.id = generateId();
+    };
+
+    ImpressionTracker.prototype.toString = function() {
+      return "<ImpressionTracker" + this.id + ">";
+    };
+
+    ImpressionTracker.prototype.entities = function() {
+      var entity, i, len, ref, results, threshold;
+      threshold = this.get('impressionThreshold');
+      ref = this.get('entityIds');
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        entity = ref[i];
+        results.push({
+          trackFirstImpressionOnly: false,
+          threshold: threshold,
+          id: entity
+        });
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.send = function(type, data) {
+      var visible;
+      visible = data.eventVisible;
+      if (visible) {
+        this.entityStates[data.trackableId] = 'enter';
+        return this.clioClient.trackScreenEnter(data.trackableId);
+      } else {
+        this.entityStates[data.trackableId] = 'exit';
+        return this.clioClient.trackScreenExit(data.trackableId);
+      }
+    };
+
+    ImpressionTracker.prototype.pageEnter = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (state === 'enter') {
+          results.push(this.clioClient.trackScreenEnter(trackableId));
+        }
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.pageExit = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (state === 'enter') {
+          results.push(this.clioClient.trackScreenExit(trackableId));
+        }
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.hide = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (!(state === 'enter')) {
+          continue;
+        }
+        this.entityStates[trackableId] = 'hide';
+        results.push(this.clioClient.trackScreenExit(trackableId));
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.show = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (!(state === 'hide')) {
+          continue;
+        }
+        this.entityStates[trackableId] = 'enter';
+        results.push(this.clioClient.trackScreenEnter(trackableId));
+      }
+      return results;
+    };
+
+    generateId = function() {
+      return Math.floor(Math.random() * 10000 + 1);
+    };
+
+    ImpressionTracker.configure = function(entityIds, clioClient, impressionThreshold) {
+      var tracker;
+      if (impressionThreshold == null) {
+        impressionThreshold = 0.5;
+      }
+      tracker = new this({
+        entityIds: entityIds,
+        impressionThreshold: impressionThreshold
+      }, {
+        clioClient: clioClient
+      });
+      Strava.Util.Autotrack.configureImpressionTracker(tracker);
+      return tracker;
+    };
+
+    return ImpressionTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+
+
+
+
+

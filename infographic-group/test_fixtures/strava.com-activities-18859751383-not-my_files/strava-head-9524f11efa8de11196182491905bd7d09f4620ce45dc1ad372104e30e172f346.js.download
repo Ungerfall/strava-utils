@@ -1,0 +1,55 @@
+(function() {
+  jQuery.noConflict();
+
+  if (jQuery.Strava == null) {
+    jQuery.Strava = (function() {
+      var window_loaded;
+
+      function Strava() {}
+
+      window_loaded = false;
+
+      Strava.loaded = function() {
+        return window_loaded = true;
+      };
+
+      Strava.execute = function(callback) {
+        if (window_loaded) {
+          return jQuery(callback);
+        } else {
+          return jQuery(window).load(callback);
+        }
+      };
+
+      return Strava;
+
+    })();
+    jQuery(window).on('load', function() {
+      return jQuery.Strava.loaded();
+    });
+  }
+
+}).call(this);
+(function() {
+  var root;
+
+  root = window;
+
+  root.Strava || (root.Strava = {});
+
+  Strava.module = function(pkg) {
+    var level, packageMembers;
+    packageMembers = pkg.split(".");
+    level = window;
+    return jQuery.each(packageMembers, function(index, value) {
+      var ref;
+      level[value] = (ref = level[value]) != null ? ref : {};
+      return level = level[value];
+    });
+  };
+
+}).call(this);
+(function() {
+
+
+}).call(this);

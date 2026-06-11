@@ -1,0 +1,91 @@
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Reports');
+
+  Strava.Reports.Action = (function(superClass) {
+    extend(Action, superClass);
+
+    function Action(athlete_id, category) {
+      this.athlete_id = athlete_id;
+      this.category = category;
+      this.selector = '.follow-action';
+      Action.__super__.constructor.call(this);
+    }
+
+    Action.prototype.enter = function(elem) {};
+
+    Action.prototype.handleCancel = function(elem) {};
+
+    Action.prototype.execute = function(elem) {
+      this.showBox(elem);
+      return jQuery('.report').remove();
+    };
+
+    Action.prototype.showBox = function(elem) {
+      var $box, setTimeoutHandler;
+      $box = jQuery(this.template({}));
+      jQuery('body').append($box);
+      setTimeoutHandler = (function(_this) {
+        return function() {
+          return _this.$document().one('click', function() {
+            _this.handleCancel(elem);
+            return $box.remove();
+          });
+        };
+      })(this);
+      setTimeout(setTimeoutHandler, 0);
+      $box.click(function(e) {
+        return false;
+      });
+      return $box.find('a.cancel').click((function(_this) {
+        return function() {
+          _this.handleCancel(elem);
+          $box.remove();
+          return false;
+        };
+      })(this));
+    };
+
+    Action.prototype.submitPost = function() {
+      return jQuery.ajax({
+        type: "POST",
+        url: "/athletes/" + this.athlete_id + "/report",
+        data: {
+          category: this.category
+        }
+      });
+    };
+
+    return Action;
+
+  })(Backbone.View);
+
+  Strava.Reports.FormSuspiciousAction = (function(superClass) {
+    extend(FormSuspiciousAction, superClass);
+
+    function FormSuspiciousAction(athlete_id, category) {
+      FormSuspiciousAction.__super__.constructor.call(this, athlete_id, category);
+      this.createTemplate('#reported-suspicious-lightbox');
+      this.submitPost();
+    }
+
+    return FormSuspiciousAction;
+
+  })(Strava.Reports.Action);
+
+  Strava.Reports.FormFakeAction = (function(superClass) {
+    extend(FormFakeAction, superClass);
+
+    function FormFakeAction(athlete_id, category) {
+      FormFakeAction.__super__.constructor.call(this, athlete_id, category);
+      this.createTemplate('#reported-fake-lightbox');
+      this.submitPost();
+    }
+
+    return FormFakeAction;
+
+  })(Strava.Reports.Action);
+
+}).call(this);

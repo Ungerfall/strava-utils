@@ -1,0 +1,194 @@
+/* esbuild-sass-plugin:css-chunk:src/components/ReportActionButtons/ReportActionButtons.module.scss */
+.iWmaa7gd {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+.iWmaa7gd .Y-p2p6vi {
+  flex: 1 1 auto;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 110%;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportCheckboxGroup/ReportCheckboxGroup.module.scss */
+.wkifFlps {
+  display: block;
+}
+.wkifFlps .Agk7qY73 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+  color: #000000;
+  cursor: pointer;
+}
+.wkifFlps .GXdkWx46 {
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportRadioGroup/ReportRadioGroup.module.scss */
+.zouqyXan {
+  display: block;
+}
+.zouqyXan .tuNvZEso {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  width: 100%;
+  margin: 0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+  color: #000000;
+  cursor: pointer;
+}
+.zouqyXan .tuNvZEso:hover {
+  background-color: #FAFAFA;
+}
+.zouqyXan .tuNvZEso .pZruEHyn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1rem;
+}
+.zouqyXan .tuNvZEso input[type=radio] {
+  visibility: hidden;
+  width: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportChoiceReasons/ReportChoiceReasons.module.scss */
+.ArxoZrxM {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ArxoZrxM .zsXI4tQQ {
+  background: #F2F2F0;
+  padding: 1.25rem;
+  border-radius: 4px;
+}
+.ArxoZrxM .zsXI4tQQ .GMie6rAc {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+}
+.ArxoZrxM .zsXI4tQQ .s-gAu563 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #43423F;
+  margin-bottom: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportLoader/ReportLoader.module.scss */
+.IoJK91Di {
+  display: flex;
+  justify-content: center;
+  min-height: 600px;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportModal/ReportModal.module.scss */
+.O08wIPgP {
+  --ui-modal-width: 500px;
+  display: block;
+  min-height: 200px;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSubmitSuccess/ReportSubmitSuccess.module.scss */
+.hfJo70aJ {
+  display: flex;
+  gap: 1rem;
+}
+.hfJo70aJ p {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #21211f;
+  margin: 0;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSubtitle/ReportSubtitle.module.scss */
+.KczaZP7- {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 110%;
+}
+.KczaZP7- a {
+  color: #fc5200;
+}
+.KczaZP7- ul,
+.KczaZP7- ol {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportSummary/ReportSummary.module.scss */
+.BkuDgHnM {
+  display: block;
+}
+.BkuDgHnM .Yx1HcDQ7 {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+.BkuDgHnM .Yx1HcDQ7:has(+ .Yx1HcDQ7[data-nested-entry=true]) {
+  margin-bottom: 0.5rem;
+}
+.BkuDgHnM .Yx1HcDQ7:has(+ .Yx1HcDQ7[data-nested-entry=true]) p {
+  margin-bottom: 0.5rem;
+}
+.BkuDgHnM .ksnntYaW {
+  font-size: 1rem;
+  font-weight: 400;
+  margin-top: 0.5rem;
+}
+.BkuDgHnM .Wq8FDDFp {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+.BkuDgHnM .Wq8FDDFp[data-has-description=true] {
+  margin-bottom: 0.25rem;
+}
+.BkuDgHnM .ozhatcQI {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #43423F;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/components/ReportTitle/ReportTitle.module.scss */
+.CnLVNU5F {
+  font-size: 1.25rem;
+}
+
+/* esbuild-sass-plugin:css-chunk:src/features/ReportActivity/ReportActivity.module.scss */
+.CVl4mz59 {
+  background-color: transparent;
+  border: none;
+  margin: 0;
+  padding: 0;
+  text-align: inherit;
+  font: inherit;
+  border-radius: 0;
+  appearance: none;
+  min-height: 0;
+  cursor: pointer;
+}
+.CVl4mz59:hover,
+.CVl4mz59:active,
+.CVl4mz59:focus {
+  background-color: transparent;
+}
+
+.ig_Se .MDg5D{margin-top:.25rem}
+.CwlLh{align-items:center;background-color:#fafafa;border-radius:2px;color:#21211f;display:flex;flex-flow:row nowrap;flex-grow:1;padding:16px}.CwlLh .DFrSo{display:flex;align-items:center;font-size:12px;color:#43423f}.CwlLh .DFrSo svg{margin-right:4px}.CwlLh .mvbSc{align-items:center;display:flex;justify-content:center}.CwlLh .mvbSc img{height:32px;width:32px}.CwlLh .YBRGj{display:flex;flex-direction:column;flex-grow:1;justify-content:center;margin-left:16px}.CwlLh .YBRGj .Tx0ud{font-weight:600}.CwlLh .YBRGj .RChPs{font-size:12px;line-height:16px;letter-spacing:.0125em;margin-top:6px}.CwlLh .YBRGj a:hover{color:#004ca6;font-weight:unset;text-decoration:none}
+.h41__{float:left}.i_5kX{color:#43423f;font-size:12px;margin-bottom:8px;padding:0 0 8px}.bBBDM{color:#43423f;font-size:12px;padding:0 0 4px}.hWv0U{display:inline-block;margin-right:4px;padding:0 0 8px;vertical-align:initial}.Dqzx6{display:inline-block;margin-right:4px;vertical-align:initial}
+.OkELq{align-items:center;color:#43423f;display:flex;padding:12px 8px}.yXbBA{font-size:13px;padding-left:8px;padding-right:64px}.gszJY{font-size:11px;font-weight:600}
+.eoFIa{float:left}.qXEAB{margin-left:6px}.FATf2{color:#43423f;font-size:12px;margin-bottom:12px;padding:0 0 12px}.veKbQ{display:inline-block;margin-right:4px;padding:0 0 12px;vertical-align:initial}
+.B7rQ6{height:24px;margin:0 8px;width:24px}.X9LCe{height:24px;width:24px}.kjMhO{display:flex;flex-direction:column}

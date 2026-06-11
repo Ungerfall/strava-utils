@@ -24,6 +24,7 @@ STATS_H = 100
 MAP_H = 500
 ELEV_H = 180
 RIDERS_H = 130
+CHART_H = 560
 PHOTO_H = 300
 
 ATHLETE_COLORS_RGB = [
@@ -217,9 +218,15 @@ def _dashed_rect(draw: ImageDraw.ImageDraw, x0, y0, x1, y1, color, dash=18, gap=
 # ── Main compose ─────────────────────────────────────────────────────────────
 
 def compose(activity: dict, map_img: Image.Image,
-            elev_img: Image.Image, athletes: list[dict]) -> Image.Image:
+            elev_img: Image.Image, athletes: list[dict],
+            chart_img: Image.Image | None = None,
+            photo_placeholder: bool = False) -> Image.Image:
 
-    total_h = HEADER_H + STATS_H + MAP_H + ELEV_H + RIDERS_H + PHOTO_H
+    total_h = HEADER_H + STATS_H + MAP_H + ELEV_H + RIDERS_H
+    if chart_img is not None:
+        total_h += CHART_H
+    if photo_placeholder:
+        total_h += PHOTO_H
     canvas = Image.new("RGB", (CANVAS_W, total_h), BG_DARK)
     draw = ImageDraw.Draw(canvas)
 
@@ -311,25 +318,33 @@ def compose(activity: dict, map_img: Image.Image,
         name = athlete.get("name", "")[:14]
         _centered_text(draw, cx, av_y + av_size + 4, name, name_font, TEXT_WHITE)
 
-    # ── Photo placeholder ─────────────────────────────────────────────────────
-    py = ry + RIDERS_H
-    draw.rectangle([(0, py), (CANVAS_W, py + PHOTO_H)], fill=BG_DARK)
-    margin = 20
-    _dashed_rect(draw, margin, py + margin, CANVAS_W - margin, py + PHOTO_H - margin,
-                 PLACEHOLDER_BORDER)
+    # ── Performance charts ────────────────────────────────────────────────────
+    if chart_img is not None:
+        cy = ry + RIDERS_H
+        chart_resized = chart_img.resize((CANVAS_W, CHART_H), Image.LANCZOS).convert("RGB")
+        canvas.paste(chart_resized, (0, cy))
+        py = cy + CHART_H
+    else:
+        py = ry + RIDERS_H
 
-    cam = icons["camera"]
-    cam_big = _make_icon("camera", 52)
-    _paste_icon(canvas, cam_big, CANVAS_W // 2 - 80, py + PHOTO_H // 2)
+    # ── Photo placeholder (opt-in) ────────────────────────────────────────────
+    if photo_placeholder:
+        draw.rectangle([(0, py), (CANVAS_W, py + PHOTO_H)], fill=BG_DARK)
+        margin = 20
+        _dashed_rect(draw, margin, py + margin, CANVAS_W - margin, py + PHOTO_H - margin,
+                     PLACEHOLDER_BORDER)
 
-    ph_font = _font(24)
-    ph_sub_font = _font(16)
-    draw.text((CANVAS_W // 2 - 50, py + PHOTO_H // 2 - 22),
-              "Add group photo here", font=ph_font, fill=PLACEHOLDER_BORDER)
-    from math import gcd
-    _g = gcd(CANVAS_W, PHOTO_H)
-    ratio_label = f"{CANVAS_W} × {PHOTO_H} px  ({CANVAS_W // _g}:{PHOTO_H // _g})"
-    draw.text((CANVAS_W // 2 - 50, py + PHOTO_H // 2 + 12),
-              ratio_label, font=ph_sub_font, fill=PLACEHOLDER_BORDER)
+        cam_big = _make_icon("camera", 52)
+        _paste_icon(canvas, cam_big, CANVAS_W // 2 - 80, py + PHOTO_H // 2)
+
+        ph_font = _font(24)
+        ph_sub_font = _font(16)
+        draw.text((CANVAS_W // 2 - 50, py + PHOTO_H // 2 - 22),
+                  "Add group photo here", font=ph_font, fill=PLACEHOLDER_BORDER)
+        from math import gcd
+        _g = gcd(CANVAS_W, PHOTO_H)
+        ratio_label = f"{CANVAS_W} × {PHOTO_H} px  ({CANVAS_W // _g}:{PHOTO_H // _g})"
+        draw.text((CANVAS_W // 2 - 50, py + PHOTO_H // 2 + 12),
+                  ratio_label, font=ph_sub_font, fill=PLACEHOLDER_BORDER)
 
     return canvas

@@ -1,0 +1,2498 @@
+(function() {
+  Strava.module('Strava.Ui.Global');
+
+  Strava.Ui.Global = (function() {
+    function Global() {}
+
+    Global.prepareAutoresizingTextbox = function() {
+      return jQuery(document).on('focus', 'textarea.autoresize', function() {
+        var input;
+        input = jQuery(this);
+        if (!input.siblings('div.textarea-clone').length) {
+          return input.addClass('noresize').after("<div class='textarea-clone'></div>").bind('keydown paste', function(event) {
+            return setTimeout((function(_this) {
+              return function() {
+                var clone, newHeight, textareaContent;
+                clone = input.next();
+                textareaContent = input.val() + 'W';
+                clone.text(textareaContent);
+                newHeight = clone.outerHeight();
+                return input.css('height', newHeight);
+              };
+            })(this), 10);
+          });
+        }
+      });
+    };
+
+    return Global;
+
+  })();
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['athletes/athlete_list_element'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div class='media'>\n  <div class='media-object'>\n    <a class='avatar avatar-athlete avatar-sm' href='/athletes/" + ($e($c(this.athlete.id))) + "' title='" + ($e($c(this.athlete.name))) + "'>\n      <img class='avatar-img' src='" + ($e($c(this.athlete.avatar_url))) + "' alt='" + ($e($c(this.athlete.name))) + "' title='" + ($e($c(this.athlete.name))) + "'>\n    </a>\n  </div>\n  <div class='media-content'>\n    <div class='media-body'>\n      <div class='name'>\n        <a class='athlete-name minimal' href='/athletes/" + ($e($c(this.athlete.id))) + "'>");
+      $o.push("          " + $e($c(this.athlete.name)));
+      if (this.athlete.member_type) {
+        $o.push("          <div class='app-icon-wrapper'>\n            <div class='" + (['app-icon', 'icon-sm', "icon-badge-" + ($e($c(this.athlete.member_type)))].sort().join(' ').replace(/^\s+|\s+$/g, '')) + "' title='" + ($e($c(Strava.I18n.Locale.t("templates.athletes.member_types." + this.athlete.member_type)))) + "'></div>\n          </div>");
+      }
+      $o.push("        </a>\n        <span class='activity-title'>" + ($c("&ndash; " + this.athlete.activity_link)) + "</span>\n      </div>\n      <div class='location'>" + ($e($c(this.athlete.location))) + "</div>\n    </div>\n    <div class='action-buttons media-actions'>\n      <span class='follow-action follow-button'>\n        <div class='stub'></div>\n      </span>\n    </div>\n  </div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.AthleteListView = (function(superClass) {
+    extend(AthleteListView, superClass);
+
+    AthleteListView.prototype.tagName = 'li';
+
+    AthleteListView.prototype.attributes = {
+      'style': 'display: none'
+    };
+
+    AthleteListView.prototype.events = {
+      'click .remove-athlete': 'removeAthlete'
+    };
+
+    function AthleteListView(athlete, entityId, activityAthlete) {
+      this.athlete = athlete;
+      this.entityId = entityId;
+      this.activityAthlete = activityAthlete;
+      this.template = 'athletes/athlete_list_element';
+      AthleteListView.__super__.constructor.call(this);
+    }
+
+    AthleteListView.prototype.render = function() {
+      var action;
+      this.renderTemplate({
+        athlete: this.athlete,
+        entityId: this.entityId,
+        activityAthlete: this.activityAthlete
+      });
+      jQuery(this.$el).find('.follow-button').attr('data-athlete-id', this.athlete.id);
+      if (!this.athlete.is_following) {
+        if (this.athlete.is_private) {
+          action = Strava.Follows.Factory.createFollowWithApprovalAction(this.athlete.id);
+        } else {
+          action = Strava.Follows.Factory.createFollowAction(this.athlete.id);
+        }
+        action.enter(this.$('.follow-button .stub'));
+      }
+      return this;
+    };
+
+    AthleteListView.prototype.removeAthlete = function() {
+      if (confirm(Strava.I18n.Locale.t('templates.feed.lightbox.remove_athlete_confirm'))) {
+        return jQuery.ajax({
+          url: "/activities/" + this.entityId + "/grouping/" + this.athlete.activity_id,
+          type: 'DELETE',
+          success: (function(_this) {
+            return function() {
+              return _this.$el.hide();
+            };
+          })(this)
+        });
+      }
+    };
+
+    return AthleteListView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Lib');
+
+  Strava.Lib.SocialController = (function(superClass) {
+    extend(SocialController, superClass);
+
+    function SocialController() {
+      this.hash = {};
+      SocialController.__super__.constructor.call(this);
+    }
+
+    SocialController.prototype.addToHash = function(key, things) {
+      if (!things.length) {
+        things = [];
+      }
+      return this.hash[key] = things;
+    };
+
+    SocialController.prototype.addToKey = function(key, thing) {
+      if (this.hash[key] == null) {
+        this.hash[key] = [];
+      }
+      return this.hash[key].push(thing);
+    };
+
+    SocialController.prototype.setHash = function(hash) {
+      if (hash === '') {
+        return;
+      }
+      return this.hash = hash;
+    };
+
+    SocialController.prototype.getFromHash = function(key) {
+      return this.hash[key] || [];
+    };
+
+    SocialController.prototype.existsInHash = function(key) {
+      return this.hash[key] != null;
+    };
+
+    return SocialController;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Lib');
+
+  Strava.Lib.CacheableModel = {
+    REQUEST_CACHE: {},
+    read: function(model, options) {
+      var data, deferred, key;
+      key = model.url();
+      deferred = jQuery.Deferred();
+      data = Strava.Lib.CacheableModel.REQUEST_CACHE[key];
+      if (data != null) {
+        model.set(data, options);
+        deferred.resolve(data);
+      } else {
+        Backbone.sync('read', model, options).done(function(attrs) {
+          model.set(attrs, options);
+          return Strava.Lib.CacheableModel.REQUEST_CACHE[key] = _.clone(attrs);
+        }).done(function() {
+          return deferred.resolve();
+        }).fail(function() {
+          return deferred.reject();
+        });
+      }
+      return deferred.promise();
+    },
+    sync: function(method, model, options) {
+      var resp;
+      if (options == null) {
+        options = {};
+      }
+      resp = (function() {
+        switch (method) {
+          case 'read':
+            if (options.cache) {
+              return Strava.Lib.CacheableModel.read(model, options);
+            } else {
+              return Backbone.sync('read', model, options);
+            }
+            break;
+          case 'create':
+            throw new Error('Create not supported');
+            break;
+          case 'update':
+            throw new Error('Update not supported');
+            break;
+          case 'delete':
+            throw new Error('Delete not supported');
+        }
+      })();
+      if (options.success) {
+        resp.done(function() {
+          return options.success();
+        });
+      }
+      if (options.error) {
+        resp.fail(function() {
+          return options.error();
+        });
+      }
+      return resp;
+    }
+  };
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Lib');
+
+  Strava.Lib.EntityMap = (function() {
+    function EntityMap() {}
+
+    EntityMap.entity_map = {
+      Activity: 'activity',
+      AthleteFeedEntry: 'athlete-feed-entry',
+      Post: 'post'
+    };
+
+    EntityMap.getUrl = function(entity, id, action) {
+      return "/feed/" + this.entity_map[entity] + "/" + id + "/" + action;
+    };
+
+    return EntityMap;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Lib');
+
+  Strava.Lib.CommentsController = (function(superClass) {
+    extend(CommentsController, superClass);
+
+    function CommentsController() {
+      return CommentsController.__super__.constructor.apply(this, arguments);
+    }
+
+    CommentsController.prototype.initialize = function() {
+      this.commentable = true;
+      return jQuery(document).bind('commentCreatedFromReact', (function(_this) {
+        return function(ev) {
+          var data, entity_key, resp;
+          data = ev.originalEvent.detail;
+          resp = data.response;
+          entity_key = data.entity + '-' + data.entityId;
+          _this.addToKey(entity_key, resp);
+          _this.dispatchCommentCreate(resp, entity_key);
+          return _this.dispatchCommentCompleted(entity_key);
+        };
+      })(this));
+    };
+
+    CommentsController.prototype.comment = function(entity, id, text) {
+      var data, entity_key;
+      data = {
+        comment: text
+      };
+      entity_key = entity + '-' + id;
+      return this.save(null, {
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'comment'),
+        type: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json',
+        success: (function(_this) {
+          return function(model, resp) {
+            _this.addToKey(entity_key, resp);
+            return _this.dispatchCommentCreate(resp, entity_key);
+          };
+        })(this),
+        complete: (function(_this) {
+          return function() {
+            return _this.dispatchCommentCompleted(entity_key);
+          };
+        })(this)
+      });
+    };
+
+    CommentsController.prototype.dispatchCommentCreate = function(resp, entity_key) {
+      return this.trigger('commentCreated', resp, entity_key);
+    };
+
+    CommentsController.prototype.dispatchCommentCompleted = function(entity_key) {
+      return this.trigger('commentCompleted', entity_key);
+    };
+
+    CommentsController.prototype.dispatchCommentDelete = function(key, resp) {
+      return this.trigger('commentDeleted', key, resp);
+    };
+
+    CommentsController.prototype.dispatchCommentsReturned = function(resp) {
+      return this.trigger('commentsReturned', resp);
+    };
+
+    CommentsController.prototype.deleteComment = function(key, id) {
+      return this.fetch({
+        url: "/feed/comment",
+        type: 'DELETE',
+        data: JSON.stringify({
+          id: id
+        }),
+        contentType: 'application/json',
+        success: (function(_this) {
+          return function(model, resp) {
+            _this.removeCommentFromHash(key, id);
+            return _this.dispatchCommentDelete(key, resp);
+          };
+        })(this)
+      });
+    };
+
+    CommentsController.prototype.parse = function(resp) {
+      return {
+        id: 1
+      };
+    };
+
+    CommentsController.prototype.removeCommentFromHash = function(key, id) {
+      var comment, comments, i, j, len, results;
+      comments = this.getFromHash(key);
+      results = [];
+      for (i = j = 0, len = comments.length; j < len; i = ++j) {
+        comment = comments[i];
+        if (comment.comment_id === id) {
+          comments.splice(i, 1);
+          break;
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
+
+    CommentsController.prototype.fetchComments = function(entity, id, success, error) {
+      var key;
+      key = entity + "-" + id;
+      if (this.existsInHash(key)) {
+        success(this.getFromHash(key));
+        return;
+      }
+      return this.fetch({
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'comments'),
+        success: (function(_this) {
+          return function(model, resp) {
+            var comments;
+            comments = resp.comments;
+            _this.addToHash(key, comments);
+            return success(comments);
+          };
+        })(this),
+        error: function(model, resp) {
+          if (error != null) {
+            return error(resp);
+          }
+        }
+      });
+    };
+
+    CommentsController.prototype.forceFetchComments = function(entity, id) {
+      var key;
+      key = entity + "-" + id;
+      return this.fetch({
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'comments'),
+        success: (function(_this) {
+          return function(model, resp) {
+            return _this.addToHash(key, resp.comments);
+          };
+        })(this)
+      });
+    };
+
+    return CommentsController;
+
+  })(Strava.Lib.SocialController);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Lib');
+
+  Strava.Lib.KudosController = (function(superClass) {
+    extend(KudosController, superClass);
+
+    function KudosController() {
+      return KudosController.__super__.constructor.apply(this, arguments);
+    }
+
+    KudosController.prototype.kudo = function(entity, id) {
+      return this.save(null, {
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'kudo'),
+        contentType: 'application/json',
+        type: 'POST',
+        success: (function(_this) {
+          return function(model, resp) {
+            return _this.dispatchKudosCreate(entity, id);
+          };
+        })(this)
+      });
+    };
+
+    KudosController.prototype.dispatchKudosCreate = function(entity, id) {
+      return this.trigger('kudoCreated', entity, id);
+    };
+
+    KudosController.prototype.fetchKudos = function(entity, id, success, error) {
+      return this.fetch({
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'kudos'),
+        success: function(model, resp) {
+          return success(resp.athletes, resp.kudosable, resp.isOwner);
+        },
+        error: function(model, resp) {
+          return error('');
+        }
+      });
+    };
+
+    KudosController.prototype.parse = function(resp) {
+      return {
+        id: 1
+      };
+    };
+
+    return KudosController;
+
+  })(Backbone.Model);
+
+}).call(this);
+
+
+
+
+
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/loading_box'] = function(context) {
+    return (function() {
+      var $o;
+      $o = [];
+      $o.push("<div class='centerAlign pb-lg pt-lg'>\n  <div class='sm spinner vcentered'>\n    <div class='graphic'></div>\n  </div>\n</div>");
+      return $o.join("\n").replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.SocialBoxView = (function(superClass) {
+    extend(SocialBoxView, superClass);
+
+    function SocialBoxView() {
+      this.selected = false;
+      this.loadingTemplate = 'feed/loading_box';
+    }
+
+    SocialBoxView.prototype.renderLoading = function() {
+      return this.renderTemplate({}, this.loadingTemplate);
+    };
+
+    SocialBoxView.prototype.unselect = function() {
+      return this.selected = false;
+    };
+
+    SocialBoxView.prototype.select = function() {
+      return this.selected = true;
+    };
+
+    SocialBoxView.prototype.show = function() {};
+
+    return SocialBoxView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/comment_box'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<!-- / Lightbox Comments -->\n<div class='comments'>\n  <p class='no-comments'>" + ($e($c(Strava.I18n.Locale.t('templates.feed.comment_box.no_comments')))) + "</p>\n  <ol class='thread'></ol>\n  <!-- / If the variable commentsDisable doesnt exist, or if it exists & is not true -->");
+      if ((this.commentsDisabled == null) || ((this.commentsDisabled != null) && !this.commentsDisabled)) {
+        $o.push("  <form class='media'>\n    <div class='media-left'>\n      <div class='avatar avatar-athlete avatar-sm'>\n        <img class='avatar-img' src='" + ($e($c(this.athlete.photo))) + "' alt='" + ($e($c(this.athlete.display_name))) + "' title='" + ($e($c(this.athlete.display_name))) + "'>\n      </div>\n    </div>\n    <div class='media-content mentionable-comment-field' data-react-class='MentionableComment' data-react-props='" + ($e($c(JSON.stringify({
+          'entity': this.entity,
+          buttonClasses: 'btn btn-default btn-sm',
+          'entityId': this.entityId,
+          suggestionLimit: 10,
+          clubMentionsEnabled: true
+        })))) + "'></div>\n  </form>");
+      }
+      $o.push("</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/comment_box_comment'] = function(context) {
+    return (function() {
+      var $c, $e, $o, i, len, ref, token;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div class='media-left'>\n  <a class='avatar avatar-athlete avatar-sm'>\n    <img class='avatar-img' src='" + ($e($c(this.athlete.avatar_url))) + "' alt='" + ($e($c(this.athlete.name))) + "' title='" + ($e($c(this.athlete.name))) + "'>\n  </a>\n</div>\n<div class='comment media-body'>\n  <a class='athlete-name' href='/athletes/" + ($e($c(this.athlete.id))) + "'>" + ($e($c(this.athlete.name))) + "</a>\n  <div class='comment-text'>");
+      if (_.isString(this.comment)) {
+        $o.push("    " + $e($c(this.comment)));
+      } else {
+        ref = this.comment;
+        for (i = 0, len = ref.length; i < len; i++) {
+          token = ref[i];
+          if (token.type === 'mention_token') {
+            $o.push("    <a class='mentioned-athlete' href='" + ($e($c(token.path))) + "'>" + ($e($c(token.text))) + "</a>");
+          } else {
+            $o.push("    " + $e($c(token.text)));
+          }
+        }
+      }
+      $o.push("  </div>\n</div>\n<div class='media-actions'>");
+      $o.push("  " + $c(this.timestamp));
+      $o.push("  <div class='actionable'></div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/delete_link'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<button class='btn btn-link delete' data-comment-id='" + ($e($c(this.comment_id))) + "' title='" + ($e($c(Strava.I18n.Locale.t('templates.feed.delete_link_v2.delete_title')))) + "'>");
+      $o.push("  " + $e($c(Strava.I18n.Locale.t('templates.feed.delete_link_v2.delete'))));
+      $o.push("</button>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/report_link'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='report' href='/comments/" + ($e($c(this.comment_id))) + "/feedback' data-comment-id='" + ($e($c(this.comment_id))) + "'>");
+      $o.push("  " + $e($c(Strava.I18n.Locale.t('templates.feed.report_link.report'))));
+      $o.push("</a>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/quarantine_link'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='report' href='" + ($e($c("/admin/quarantine/comment_form?comment_id=" + this.comment_id))) + "' target='_blank'>Soft Delete</a>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.CommentBoxView = (function(superClass) {
+    extend(CommentBoxView, superClass);
+
+    CommentBoxView.prototype.events = {
+      'submit form': 'createComment'
+    };
+
+    function CommentBoxView(controller, entity, entity_id, commentsDisabled) {
+      this.controller = controller;
+      this.entity = entity;
+      this.entity_id = entity_id;
+      this.commentsDisabled = commentsDisabled;
+      this.template = 'feed/comment_box';
+      this.controller.bind('commentCreated', (function(_this) {
+        return function(resp) {
+          var $thread, elem;
+          elem = _this.createCommentElem(resp);
+          _this.$('p.no-comments').remove();
+          $thread = _this.$('ol.thread');
+          if ($thread.length) {
+            $thread.scrollTop($thread[0].scrollHeight);
+            $thread.append(elem).find('li').slideDown();
+            return _this.$('form textarea').val('');
+          }
+        };
+      })(this));
+      this.controller.bind('commentCompleted', (function(_this) {
+        return function() {
+          return _this.$("form input[type='submit']").removeAttr('disabled');
+        };
+      })(this));
+      CommentBoxView.__super__.constructor.call(this);
+    }
+
+    CommentBoxView.prototype.createCommentElem = function(comment) {
+      var commentView;
+      commentView = new Strava.Feed.CommentBoxComment(this.controller, comment, this.entity, this.entity_id);
+      return commentView.render().el;
+    };
+
+    CommentBoxView.prototype.createComment = function() {
+      var text;
+      text = jQuery.trim(this.$('form textarea').val());
+      if (text.length) {
+        this.$("form input[type='submit']").attr('disabled', 'disabled');
+        this.controller.comment(this.entity, this.entity_id, text, {});
+      }
+      return false;
+    };
+
+    CommentBoxView.prototype.render = function(target) {
+      this.setElement(target);
+      this.renderLoading();
+      this.controller.fetchComments(this.entity, this.entity_id, ((function(_this) {
+        return function(comments) {
+          return _this.handleSuccess(comments);
+        };
+      })(this)), ((function(_this) {
+        return function(resp) {
+          return _this.renderEmpty();
+        };
+      })(this)));
+      return this;
+    };
+
+    CommentBoxView.prototype.renderEmpty = function() {
+      this.renderTemplate({
+        athlete: currentAthlete.toJSON(),
+        entity: this.entity,
+        entityId: this.entity_id,
+        commentsDisabled: this.commentsDisabled
+      });
+      if (this.controller.commentable) {
+        return this.$('textarea').focus();
+      } else {
+        return this.$('form').hide();
+      }
+    };
+
+    CommentBoxView.prototype.handleSuccess = function(comments) {
+      var comment, e, elements, i, len, node;
+      this.renderEmpty();
+      elements = [];
+      for (i = 0, len = comments.length; i < len; i++) {
+        comment = comments[i];
+        elements.push(this.createCommentElem(comment));
+      }
+      if (elements.length) {
+        this.$('.no-comments').remove();
+        this.$('ol.thread').append(elements).find('li').fadeIn('fast');
+      }
+      node = this.$('.mentionable-comment-field');
+      if (node.length) {
+        e = new CustomEvent('JSCreatedReactNode', {
+          detail: {
+            node: node
+          }
+        });
+        document.dispatchEvent(e);
+      }
+      return this;
+    };
+
+    return CommentBoxView;
+
+  })(Strava.Feed.SocialBoxView);
+
+  Strava.Feed.CommentBoxComment = (function(superClass) {
+    extend(CommentBoxComment, superClass);
+
+    CommentBoxComment.prototype.tagName = 'li';
+
+    CommentBoxComment.prototype.className = 'media';
+
+    CommentBoxComment.prototype.attributes = {
+      'style': 'display: none'
+    };
+
+    CommentBoxComment.prototype.events = {
+      'click .delete': 'deleteComment',
+      'click .report': 'reportComment'
+    };
+
+    function CommentBoxComment(controller, comment1, entity, entity_id) {
+      this.controller = controller;
+      this.comment = comment1;
+      this.entity = entity;
+      this.entity_id = entity_id;
+      this.template = 'feed/comment_box_comment';
+      this.thread_key = this.entity + "-" + this.entity_id;
+      CommentBoxComment.__super__.constructor.call(this);
+    }
+
+    CommentBoxComment.prototype.deleteComment = function(event) {
+      Strava.ExternalAnalytics.trackV2({
+        category: this.analyticsCategory(),
+        page: 'comment',
+        action: 'click',
+        element: 'delete',
+        properties: this.analyticsPropertiesForComment
+      });
+      if (confirm(Strava.I18n.Locale.t('strava.feed.comment_box_view.confirm_delete'))) {
+        Strava.ExternalAnalytics.trackV2({
+          category: this.analyticsCategory(),
+          page: 'comment',
+          action: 'click',
+          element: 'confirm_delete',
+          properties: this.analyticsPropertiesForComment
+        });
+        this.controller.deleteComment(this.thread_key, this.comment.comment_id);
+        this.$el.slideUp('fast', (function(_this) {
+          return function() {
+            return _this.remove();
+          };
+        })(this));
+      }
+      return false;
+    };
+
+    CommentBoxComment.prototype.reportComment = function(event) {
+      event.preventDefault();
+      Strava.ExternalAnalytics.trackV2({
+        category: this.analyticsCategory(),
+        page: 'comment',
+        action: 'click',
+        element: 'report',
+        properties: this.analyticsPropertiesForComment()
+      });
+      return window.location = jQuery(event.target).attr('href');
+    };
+
+    CommentBoxComment.prototype.analyticsPropertiesForComment = function() {
+      var properties;
+      properties = {
+        comment_id: this.comment.comment_id
+      };
+      switch (this.entity) {
+        case 'Activity':
+          properties.activity_id = this.entity_id;
+          break;
+        case 'Post':
+          properties.post_id = this.entity_id;
+      }
+      return properties;
+    };
+
+    CommentBoxComment.prototype.analyticsCategory = function() {
+      var location;
+      location = window.location.href;
+      if (location.indexOf('posts') !== -1) {
+        return 'post_detail';
+      } else if (location.indexOf('activities') !== -1) {
+        return 'activity_detail';
+      } else if (location.indexOf('athletes') !== -1) {
+        return 'athlete_profile';
+      } else {
+        return 'feed';
+      }
+    };
+
+    CommentBoxComment.prototype.render = function() {
+      var $actionable, $elem, datetime, deleteLinkTemplate, elem, i, len, quarantineLinkTemplate, ref, reportLinkTemplate, timeago;
+      this.renderTemplate({
+        athlete: this.comment.athlete,
+        comment: this.comment.comment,
+        timestamp: this.comment.timestamp
+      });
+      ref = this.$('time.timeago');
+      for (i = 0, len = ref.length; i < len; i++) {
+        elem = ref[i];
+        $elem = this.$(elem);
+        if (datetime = $elem.attr('datetime')) {
+          timeago = Strava.I18n.TimespanFormatter.timeago(Date.parse(datetime));
+          $elem.html(timeago);
+        }
+      }
+      if (this.comment.reportable || this.comment.deletable || this.comment.quarantinable) {
+        $actionable = this.$el.find('.actionable');
+        if (this.comment.reportable) {
+          reportLinkTemplate = this.getTemplateFor('feed/report_link');
+          $actionable.append(reportLinkTemplate({
+            comment_id: this.comment.comment_id
+          }));
+        }
+        if (this.comment.deletable) {
+          deleteLinkTemplate = this.getTemplateFor('feed/delete_link');
+          $actionable.append(deleteLinkTemplate({
+            comment_id: this.comment.comment_id
+          }));
+        }
+        if (this.comment.quarantinable) {
+          quarantineLinkTemplate = this.getTemplateFor('feed/quarantine_link');
+          $actionable.append(quarantineLinkTemplate({
+            comment_id: this.comment.comment_id
+          }));
+        }
+      }
+      return this;
+    };
+
+    return CommentBoxComment;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/comment_feed'] = function(context) {
+    return (function() {
+      var $c, $e, $o, i, len, ref, token;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div class='media-left'>\n  <div class='avatar avatar-athlete avatar-sm'>\n    <a class='avatar-content' href='/athletes/" + ($e($c(this.athlete.id))) + "'>\n      <div class='avatar-img-wrapper'>");
+      if (this.athlete.member_type) {
+        $o.push("        <div class='avatar-badge'>\n          <span class='app-icon-wrapper'>\n            <span class='" + (['app-icon', 'icon-sm', "icon-badge-" + ($e($c(this.athlete.member_type)))].sort().join(' ').replace(/^\s+|\s+$/g, '')) + "'></span>\n          </span>\n        </div>");
+      }
+      $o.push("        <img class='avatar-img' src='" + ($e($c(this.athlete.photo))) + "' alt='" + ($e($c(this.athlete.display_name))) + "'>\n      </div>\n    </a>\n  </div>\n</div>\n<div class='comment media-body'>\n  <a class='athlete-name' href='/athletes/" + ($e($c(this.athlete.id))) + "'>" + ($e($c(this.athlete.display_name))) + "</a>\n  <span class='comment-text'>");
+      if (_.isString(this.comment)) {
+        $o.push("    " + $e($c(this.comment)));
+      } else {
+        ref = this.comment;
+        for (i = 0, len = ref.length; i < len; i++) {
+          token = ref[i];
+          if (token.type === 'mention_token') {
+            $o.push("    <a class='mentioned-athlete' href='" + ($e($c(token.path))) + "'>" + ($e($c(token.text))) + "</a>");
+          } else {
+            $o.push("    " + $e($c(token.text)));
+          }
+        }
+      }
+      $o.push("  </span>\n  <div class='comment-actionable'>\n    <span class='timestamp'>");
+      $o.push("      " + $c(this.timestamp));
+      $o.push("    </span>");
+      if (this.deletable || this.reportable) {
+        $o.push("    <div class='comment-actions'>");
+        if (this.reportable) {
+          $o.push("      <span class='report-comment'>\n        <a class='report' href='/comments/" + ($e($c(this.comment_id))) + "/feedback' data-comment-id='" + ($e($c(this.comment_id))) + "'>");
+          $o.push("          " + $e($c(Strava.I18n.Locale.t('templates.feed.comment_feed.report'))));
+          $o.push("        </a>\n      </span>");
+        }
+        if (this.deletable) {
+          $o.push("      <span class='delete-comment'>\n        <button class='btn btn-link delete' data-comment-id='" + ($e($c(this.comment_id))) + "'>");
+          $o.push("          " + $e($c(Strava.I18n.Locale.t('templates.feed.comment_feed.delete'))));
+          $o.push("        </button>\n      </span>");
+        }
+        $o.push("    </div>");
+      }
+      $o.push("  </div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.EntityView = (function(superClass) {
+    extend(EntityView, superClass);
+
+    function EntityView(commentsController, kudosController) {
+      this.commentsController = commentsController;
+      this.kudosController = kudosController;
+      this.prepareResponseBindings();
+      this.prepareFeedBindings();
+      EntityView.__super__.constructor.call(this);
+    }
+
+    EntityView.prototype.prepareResponseBindings = function() {
+      this.commentsController.bind('commentCreated', (function(_this) {
+        return function(resp, key) {
+          var $entity, $thread, elem;
+          $entity = jQuery("#" + key);
+          $thread = $entity.find('.comments ol.thread');
+          if ($thread.length) {
+            elem = jQuery(new Strava.Feed.Comment(resp).render().el);
+            $thread.append(elem);
+          }
+          $entity.find('.comments form textarea').val('');
+          return _this.updateCommentCount(key, 1);
+        };
+      })(this));
+      this.commentsController.bind('commentCompleted', (function(_this) {
+        return function(key) {
+          var $entity;
+          $entity = jQuery("#" + key);
+          return $entity.find(".comments form input[type='submit']").removeAttr('disabled');
+        };
+      })(this));
+      this.commentsController.bind('commentDeleted', (function(_this) {
+        return function(key, resp) {
+          var $link;
+          $link = jQuery("[data-entity-id=" + key + "]").find("ol.thread [data-comment-id='" + resp.id + "']");
+          $link.closest('li').remove();
+          return _this.updateCommentCount(key, -1);
+        };
+      })(this));
+      return this.kudosController.bind('kudoCreated', (function(_this) {
+        return function(type, id) {
+          var count, countInt, entity, key;
+          key = type + "-" + id;
+          entity = jQuery("#" + key);
+          entity.find('.btn-kudo').removeClass('empty js-add-kudo').addClass('kudoed js-view-kudos').attr('title', Strava.I18n.Locale.t('strava.feed.entity_view.view_all_kudos'));
+          entity.find('.btn-kudo .app-icon').removeClass('icon-dark').addClass('kudoed icon-color').end();
+          entity.find('.kudos-facepile .avatar.hidden').removeClass('hidden').end();
+          entity.find('.kudos-count-wrapper').removeClass('empty js-add-kudo').end();
+          entity.find('.js-give-kudos-cta').addClass('hidden').end();
+          count = entity.find('.count-kudos');
+          countInt = count.data('kudo-count') + 1;
+          count.data('kudo-count', countInt);
+          return count.html(new TwitterCldr.DecimalFormatter().format(countInt));
+        };
+      })(this));
+    };
+
+    EntityView.prototype.prepareFeedBindings = function() {
+      return jQuery('.page').on('submit', '.feed .comments form', (function(_this) {
+        return function(e) {
+          var $elem, entity_info, text;
+          $elem = jQuery(e.target);
+          entity_info = $elem.data('entry');
+          text = $elem.find('textarea').val();
+          if (text.length) {
+            $elem.find("input[type='submit']").attr('disabled', 'disabled');
+            _this.commentsController.comment(entity_info[0], entity_info[1], text);
+          }
+          return false;
+        };
+      })(this)).on('click', '.feed .js-add-kudo', (function(_this) {
+        return function(e) {
+          var $elem, entity_info;
+          $elem = jQuery(e.currentTarget);
+          entity_info = $elem.data('entry');
+          if (entity_info) {
+            $elem.addClass('kudoed');
+            _this.kudosController.kudo(entity_info[0], entity_info[1]);
+          }
+          return false;
+        };
+      })(this)).on('click', '.feed .comments ol.thread .delete-comment', (function(_this) {
+        return function(e) {
+          var $elem, entity;
+          $elem = jQuery(e.target);
+          Strava.ExternalAnalytics.trackV2({
+            category: _this.analyticsCategory(),
+            page: 'comment',
+            action: 'click',
+            element: 'delete',
+            properties: _this.analyticsPropertiesForComment($elem)
+          });
+          if (confirm(Strava.I18n.Locale.t('strava.feed.comment_box_view.confirm_delete'))) {
+            Strava.ExternalAnalytics.trackV2({
+              category: _this.analyticsCategory(),
+              page: 'comment',
+              action: 'click',
+              element: 'confirm_delete',
+              properties: _this.analyticsPropertiesForComment($elem)
+            });
+            entity = $elem.closest('[data-entity-id]').data('entity-id');
+            _this.commentsController.deleteComment(entity, $elem.data('comment-id'));
+          }
+          return false;
+        };
+      })(this)).on('click', '.feed .comments ol.thread .report-comment', (function(_this) {
+        return function(e) {
+          var $elem;
+          e.preventDefault();
+          $elem = jQuery(e.target);
+          Strava.ExternalAnalytics.trackV2({
+            category: _this.analyticsCategory(),
+            page: 'comment',
+            action: 'click',
+            element: 'report',
+            properties: _this.analyticsPropertiesForComment($elem)
+          });
+          return window.location = $elem.attr('href');
+        };
+      })(this));
+    };
+
+    EntityView.prototype.analyticsPropertiesForComment = function($elem) {
+      var entity, parentEntityData, parentEntityId, parentEntityType, properties;
+      entity = $elem.closest('[data-entity-id]').data('entity-id');
+      parentEntityData = entity.split('-');
+      parentEntityType = parentEntityData[0];
+      parentEntityId = parseInt(parentEntityData[1]);
+      properties = {
+        comment_id: $elem.data().commentId
+      };
+      switch (parentEntityType) {
+        case 'Activity':
+          properties.activity_id = parentEntityId;
+          break;
+        case 'Post':
+          properties.post_id = parentEntityId;
+      }
+      return properties;
+    };
+
+    EntityView.prototype.analyticsCategory = function() {
+      var location;
+      location = window.location.href;
+      if (location.indexOf('posts') !== -1) {
+        return 'post_detail';
+      } else if (location.indexOf('activities') !== -1) {
+        return 'activity_detail';
+      } else if (location.indexOf('athletes') !== -1) {
+        return 'athlete_profile';
+      } else {
+        return 'feed';
+      }
+    };
+
+    EntityView.prototype.updateCommentCount = function(key, increment) {
+      var count, countInt, entity, label;
+      entity = jQuery("#" + key);
+      count = entity.find('.count-comments');
+      label = entity.find('.js-view-comments .count-label');
+      countInt = this.commentsController.getFromHash(key).length;
+      if (countInt === 0) {
+        count.parent().addClass('empty');
+        count.parents().find('.comments-count-wrapper').addClass('empty');
+        count.closest('.social').find('.show-all').hide();
+      } else {
+        count.parent().removeClass('empty');
+        count.parents().find('.comments-count-wrapper').removeClass('empty');
+      }
+      label.html(Strava.I18n.Locale.t('strava.feed.comment_count', {
+        count: countInt
+      }));
+      count.html(new TwitterCldr.DecimalFormatter().format(countInt));
+      return entity.find('.link-count').text(countInt);
+    };
+
+    return EntityView;
+
+  })(Backbone.View);
+
+  Strava.Feed.Comment = (function(superClass) {
+    extend(Comment, superClass);
+
+    Comment.prototype.tagName = 'li';
+
+    Comment.prototype.className = 'deletable media';
+
+    function Comment(data) {
+      this.data = data;
+      this.template = 'feed/comment_feed';
+      Comment.__super__.constructor.call(this);
+    }
+
+    Comment.prototype.render = function() {
+      var $elem, datetime, elem, i, len, ref, timeago;
+      this.renderTemplate({
+        athlete: currentAthlete.toJSON(),
+        comment: this.data.comment,
+        comment_id: this.data.comment_id,
+        timestamp: this.data.timestamp,
+        deletable: this.data.deletable,
+        reportable: this.data.reportable,
+        quarantinable: this.data.quarantinable
+      });
+      ref = this.$('time.timeago');
+      for (i = 0, len = ref.length; i < len; i++) {
+        elem = ref[i];
+        $elem = this.$(elem);
+        if (datetime = $elem.attr('datetime')) {
+          timeago = Strava.I18n.TimespanFormatter.timeago(Date.parse(datetime));
+          $elem.html(timeago);
+        }
+      }
+      return this;
+    };
+
+    return Comment;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Tracking');
+
+  Strava.Tracking.ImpressionTrackerSet = (function() {
+    function ImpressionTrackerSet() {
+      this.trackers = {};
+    }
+
+    ImpressionTrackerSet.prototype.addTracker = function(tracker, trackerGA) {
+      if (this.trackers[tracker]) {
+        return;
+      }
+      return this.trackers[tracker] = {
+        tracker: tracker,
+        ga: trackerGA
+      };
+    };
+
+    ImpressionTrackerSet.prototype.pageEnter = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.pageEnter());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.pageExit = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.pageExit());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.hide = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.hide());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.show = function() {
+      var data, key, ref, results;
+      ref = this.trackers;
+      results = [];
+      for (key in ref) {
+        data = ref[key];
+        results.push(data.tracker.show());
+      }
+      return results;
+    };
+
+    ImpressionTrackerSet.prototype.count = function() {
+      return Object.keys(this.trackers).length;
+    };
+
+    ImpressionTrackerSet.prototype.reset = function() {
+      var data, key, ref;
+      ref = this.trackers;
+      for (key in ref) {
+        data = ref[key];
+        data.tracker.pageExit();
+        data.ga.remove();
+      }
+      return this.trackers = {};
+    };
+
+    return ImpressionTrackerSet;
+
+  })();
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Util');
+
+  Strava.Util.Autotrack = (function() {
+    var PAGE_VISIBILITY_TIMEOUT, instance;
+
+    PAGE_VISIBILITY_TIMEOUT = 60 * 24;
+
+    function Autotrack() {
+      this.impressionTrackerSet = new Strava.Tracking.ImpressionTrackerSet();
+      this.pageVisibilityTracker = null;
+    }
+
+    Autotrack.prototype.setPageVisibilityTracker = function(tracker) {
+      this.pageVisibilityTracker = tracker;
+      this.pageVisibilityTracker.on('pageEnter', (function(_this) {
+        return function() {
+          return _this.impressionTrackerSet.pageEnter();
+        };
+      })(this));
+      return this.pageVisibilityTracker.on('pageExit', (function(_this) {
+        return function() {
+          return _this.impressionTrackerSet.pageExit();
+        };
+      })(this));
+    };
+
+    Autotrack.prototype.addImpressionTracker = function(tracker, impressionTrackerGA) {
+      return this.impressionTrackerSet.addTracker(tracker, impressionTrackerGA);
+    };
+
+    Autotrack.prototype.setClioTracker = function(clioTracker) {
+      return this.clioTracker = clioTracker;
+    };
+
+    Autotrack.prototype.getClioTracker = function() {
+      return this.clioTracker;
+    };
+
+    Autotrack.prototype.handleUnload = function() {
+      return this.impressionTrackerSet.pageExit();
+    };
+
+    Autotrack.prototype.handleImpressionReset = function() {
+      return this.impressionTrackerSet.reset();
+    };
+
+    Autotrack.prototype.handleImpressionHide = function() {
+      return this.impressionTrackerSet.hide();
+    };
+
+    Autotrack.prototype.handleImpressionShow = function() {
+      return this.impressionTrackerSet.show();
+    };
+
+    Autotrack.prototype.handleImpressionAppend = function(entityIds) {
+      return Strava.Feed.ImpressionTracker.configure(entityIds, this.clioTracker);
+    };
+
+    instance = null;
+
+    Autotrack.getInstance = function() {
+      if (!instance) {
+        instance = new this();
+      }
+      return instance;
+    };
+
+    Autotrack.configureImpressionTracker = function(tracker) {
+      var impressionTrackerGA;
+      impressionTrackerGA = this.createPlugin('ImpressionTracker', tracker, {
+        attributePrefix: 'str-',
+        elements: tracker.entities()
+      });
+      return this.getInstance().addImpressionTracker(tracker, impressionTrackerGA);
+    };
+
+    Autotrack.configurePageVisibilityTracker = function(tracker) {
+      this.createPlugin('PageVisibilityTracker', tracker, {
+        changeTemplate: (function(oldValue, newValue) {
+          return newValue;
+        }),
+        sessionTimeout: PAGE_VISIBILITY_TIMEOUT
+      });
+      return this.getInstance().setPageVisibilityTracker(tracker);
+    };
+
+    Autotrack.configureEventTracker = function(tracker) {
+      return this.createPlugin('EventTracker', tracker, {
+        attributePrefix: 'str-'
+      });
+    };
+
+    Autotrack.createPlugin = function(plugin, tracker, options) {
+      if (typeof gaplugins !== "undefined" && gaplugins !== null) {
+        return new gaplugins[plugin](tracker, options);
+      } else {
+        console.log('gaplugins not found');
+        return null;
+      }
+    };
+
+    Autotrack.configurePage = function(formAuthenticityToken, currentAthleteId, callback) {
+      var analyticsConfiguration, autotrack;
+      analyticsConfiguration = {
+        remote_logger: {
+          request_headers: {
+            'X-CSRF-Token': formAuthenticityToken
+          }
+        }
+      };
+      return autotrack = this.getInstance();
+    };
+
+    Autotrack.configureMore = function(callback) {
+      var autotrack;
+      autotrack = this.getInstance();
+      return callback(autotrack.getClioTracker());
+    };
+
+    return Autotrack;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.EventTracker = (function(superClass) {
+    extend(EventTracker, superClass);
+
+    function EventTracker() {
+      return EventTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    EventTracker.prototype.initialize = function(attributes, options) {
+      return this.clioClient = options.clioClient;
+    };
+
+    EventTracker.prototype.send = function(hitType, data) {
+      if (data.type === 'anchor_container') {
+        return this.handleAnchorContainer(hitType, data);
+      } else {
+        return this.clioClient.trackClick(data.trackableId, data.type, data.targetUrl);
+      }
+    };
+
+    EventTracker.prototype.handleAnchorContainer = function(hitType, data) {
+      var clickType;
+      if (data.targetTagName !== 'A') {
+        return;
+      }
+      clickType = data.click_type ? data.click_type : 'link';
+      return this.clioClient.trackClick(data.trackableId, clickType, data.targetUrl);
+    };
+
+    EventTracker.configure = function(clioClient) {
+      var tracker;
+      tracker = new this({}, {
+        clioClient: clioClient
+      });
+      return Strava.Util.Autotrack.configureEventTracker(tracker);
+    };
+
+    return EventTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.GroupRideController = (function(superClass) {
+    extend(GroupRideController, superClass);
+
+    function GroupRideController() {
+      return GroupRideController.__super__.constructor.apply(this, arguments);
+    }
+
+    GroupRideController.prototype.fetchGroupAthletes = function(entity, id, success, error) {
+      return this.fetch({
+        url: Strava.Lib.EntityMap.getUrl(entity, id, 'group_athletes'),
+        success: function(model, resp) {
+          return success(resp.athletes);
+        },
+        error: function(model, resp) {
+          return error('');
+        }
+      });
+    };
+
+    GroupRideController.prototype.parse = function(resp) {
+      return {
+        id: 1
+      };
+    };
+
+    return GroupRideController;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/group_ride'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<ul class='athletes list-athletes list-media'></ul>");
+      if (parseInt(this.activityAthlete.id, 10) === currentAthlete.id) {
+        $o.push("<div class='actions actions-kudo modal-footer'>\n  <button class='btn btn-default compact' id='leave-group'>");
+        $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.feed.lightbox.leave_group'))));
+        $o.push("  </button>\n</div>");
+      }
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.GroupRideView = (function(superClass) {
+    extend(GroupRideView, superClass);
+
+    GroupRideView.prototype.events = {
+      'click #leave-group': 'leaveGroup'
+    };
+
+    function GroupRideView(controller, entity, entityId, activityAthlete) {
+      this.controller = controller;
+      this.entity = entity;
+      this.entityId = entityId;
+      this.activityAthlete = activityAthlete;
+      this.loadingTemplate = 'feed/loading_box';
+      this.groupTemplate = 'feed/group_ride';
+      GroupRideView.__super__.constructor.call(this);
+    }
+
+    GroupRideView.prototype.render = function(target) {
+      this.setElement(target);
+      this.renderTemplate({}, this.loadingTemplate);
+      this.controller.fetchGroupAthletes(this.entity, this.entityId, ((function(_this) {
+        return function(athletes) {
+          return _this.handleSuccess(athletes);
+        };
+      })(this)), ((function(_this) {
+        return function(msg) {
+          return _this.handleError(msg);
+        };
+      })(this)));
+      return this;
+    };
+
+    GroupRideView.prototype.handleSuccess = function(athletes) {
+      var athlete, elems, i, len;
+      if (!this.selected) {
+        return this;
+      }
+      this.renderTemplate({
+        activityAthlete: this.activityAthlete
+      }, this.groupTemplate);
+      elems = [];
+      for (i = 0, len = athletes.length; i < len; i++) {
+        athlete = athletes[i];
+        elems.push(this.createAthleteElem(athlete));
+      }
+      if (elems.length) {
+        this.$('ul.athletes').append(elems).find('li').fadeIn('fast');
+      }
+      return this;
+    };
+
+    GroupRideView.prototype.handleError = function(msg) {};
+
+    GroupRideView.prototype.createAthleteElem = function(athlete) {
+      var athleteView;
+      athleteView = new Strava.AthleteListView(athlete, this.entityId, this.activityAthlete);
+      return athleteView.render().el;
+    };
+
+    GroupRideView.prototype.unselect = function() {
+      return this.selected = false;
+    };
+
+    GroupRideView.prototype.select = function() {
+      return this.selected = true;
+    };
+
+    GroupRideView.prototype.show = function() {};
+
+    GroupRideView.prototype.leaveGroup = function() {
+      Strava.ExternalAnalytics.trackV2({
+        category: 'leave_group_activity',
+        page: 'group_ride_view',
+        action: 'click',
+        element: 'leave-group'
+      });
+      return jQuery.ajax({
+        url: "/activities/" + this.entityId + "/grouping",
+        type: 'DELETE',
+        success: (function(_this) {
+          return function() {
+            return _this.$el.hide();
+          };
+        })(this)
+      });
+    };
+
+    return GroupRideView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.ImpressionTracker = (function(superClass) {
+    var generateId;
+
+    extend(ImpressionTracker, superClass);
+
+    function ImpressionTracker() {
+      return ImpressionTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    ImpressionTracker.prototype.initialize = function(attributes, options) {
+      this.clioClient = options.clioClient;
+      this.entityStates = {};
+      return this.id = generateId();
+    };
+
+    ImpressionTracker.prototype.toString = function() {
+      return "<ImpressionTracker" + this.id + ">";
+    };
+
+    ImpressionTracker.prototype.entities = function() {
+      var entity, i, len, ref, results, threshold;
+      threshold = this.get('impressionThreshold');
+      ref = this.get('entityIds');
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        entity = ref[i];
+        results.push({
+          trackFirstImpressionOnly: false,
+          threshold: threshold,
+          id: entity
+        });
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.send = function(type, data) {
+      var visible;
+      visible = data.eventVisible;
+      if (visible) {
+        this.entityStates[data.trackableId] = 'enter';
+        return this.clioClient.trackScreenEnter(data.trackableId);
+      } else {
+        this.entityStates[data.trackableId] = 'exit';
+        return this.clioClient.trackScreenExit(data.trackableId);
+      }
+    };
+
+    ImpressionTracker.prototype.pageEnter = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (state === 'enter') {
+          results.push(this.clioClient.trackScreenEnter(trackableId));
+        }
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.pageExit = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (state === 'enter') {
+          results.push(this.clioClient.trackScreenExit(trackableId));
+        }
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.hide = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (!(state === 'enter')) {
+          continue;
+        }
+        this.entityStates[trackableId] = 'hide';
+        results.push(this.clioClient.trackScreenExit(trackableId));
+      }
+      return results;
+    };
+
+    ImpressionTracker.prototype.show = function() {
+      var ref, results, state, trackableId;
+      ref = this.entityStates;
+      results = [];
+      for (trackableId in ref) {
+        state = ref[trackableId];
+        if (!(state === 'hide')) {
+          continue;
+        }
+        this.entityStates[trackableId] = 'enter';
+        results.push(this.clioClient.trackScreenEnter(trackableId));
+      }
+      return results;
+    };
+
+    generateId = function() {
+      return Math.floor(Math.random() * 10000 + 1);
+    };
+
+    ImpressionTracker.configure = function(entityIds, clioClient, impressionThreshold) {
+      var tracker;
+      if (impressionThreshold == null) {
+        impressionThreshold = 0.5;
+      }
+      tracker = new this({
+        entityIds: entityIds,
+        impressionThreshold: impressionThreshold
+      }, {
+        clioClient: clioClient
+      });
+      Strava.Util.Autotrack.configureImpressionTracker(tracker);
+      return tracker;
+    };
+
+    return ImpressionTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/kudo_box_layout'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<ul class='list-athletes list-kudos' id='kudo-list'></ul>\n<div class='actions actions-kudo modal-footer' style='display: none;'>\n  <button class='btn btn-default compact create-kudo' disabled='disabled'>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.feed.kudo_box_layout.give_kudos'))));
+      $o.push("  </button>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/kudo_current_athlete'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<li class='current-athlete'>\n  <div class='media'>\n    <div class='media-object'>\n      <a class='avatar avatar-athlete avatar-sm' href='/athletes/" + ($e($c(this.athlete.id))) + "' title='" + ($e($c(this.athlete.display_name))) + "'>\n        <img class='avatar-img' src='" + ($e($c(this.athlete.photo))) + "' alt='" + ($e($c(this.athlete.display_name))) + "' title='" + ($e($c(this.athlete.display_name))) + "'>\n      </a>\n    </div>\n    <div class='media-content'>\n      <div class='media-body'>\n        <span class='name'>\n          <a class='athlete-name minimal' href='/athletes/" + ($e($c(this.athlete.id))) + "'>");
+      $o.push("            " + $e($c(this.athlete.display_name)));
+      if (this.athlete.member_type) {
+        $o.push("            <div class='app-icon-wrapper'>\n              <div class='" + (['app-icon', 'icon-sm', "icon-badge-" + ($e($c(this.athlete.member_type)))].sort().join(' ').replace(/^\s+|\s+$/g, '')) + "' title='" + ($e($c(Strava.I18n.Locale.t("templates.athletes.member_types." + this.athlete.member_type)))) + "'></div>\n            </div>");
+      }
+      $o.push("          </a>\n        </span>\n        <span class='location'>" + ($e($c(this.athlete.display_location))) + "</span>\n      </div>\n    </div>\n  </div>\n</li>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/no_kudos'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<p class='no-kudos'>" + ($e($c(Strava.I18n.Locale.t('templates.feed.no_kudos.no_kudos_yet_v2')))) + "</p>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.KudoBoxView = (function(superClass) {
+    extend(KudoBoxView, superClass);
+
+    KudoBoxView.prototype.events = {
+      'click .create-kudo:not([disabled="disabled"])': 'createKudo'
+    };
+
+    function KudoBoxView(controller, entity, entity_id) {
+      this.controller = controller;
+      this.entity = entity;
+      this.entity_id = entity_id;
+      this.kudoTemplate = 'feed/kudo_box_layout';
+      this.noKudosTemplate = 'feed/no_kudos';
+      this.currentAthleteTemplate = 'feed/kudo_current_athlete';
+      this.controller.bind('kudoCreated', (function(_this) {
+        return function() {
+          return _this.handleKudoCreate();
+        };
+      })(this));
+      KudoBoxView.__super__.constructor.call(this);
+    }
+
+    KudoBoxView.prototype.render = function(target) {
+      this.setElement(target);
+      this.renderLoading();
+      this.controller.fetchKudos(this.entity, this.entity_id, ((function(_this) {
+        return function(athletes, canKudo, isOwner) {
+          return _this.handleSuccess(athletes, canKudo, isOwner);
+        };
+      })(this)), ((function(_this) {
+        return function(msg) {
+          return _this.handleError(msg);
+        };
+      })(this)));
+      return this;
+    };
+
+    KudoBoxView.prototype.handleSuccess = function(kudos, canKudo, isOwner) {
+      var athletes, i, kudo, len;
+      if (!this.selected) {
+        return this;
+      }
+      this.renderTemplate({}, this.kudoTemplate);
+      athletes = [];
+      for (i = 0, len = kudos.length; i < len; i++) {
+        kudo = kudos[i];
+        athletes.push(this.createAthleteElem(kudo));
+      }
+      if (athletes.length) {
+        this.$('#kudo-list').append(athletes).find('li').fadeIn('fast');
+      } else {
+        this.handleEmptyList();
+      }
+      if (!isOwner) {
+        this.$('.actions').slideDown('fast');
+      }
+      if (canKudo) {
+        this.$('.create-kudo').removeAttr('disabled');
+      }
+      return this;
+    };
+
+    KudoBoxView.prototype.handleEmptyList = function() {
+      var noKudosTemplate;
+      noKudosTemplate = this.getTemplateFor(this.noKudosTemplate);
+      return this.$('#kudo-list').closest('#tab-contents').prepend(noKudosTemplate({}));
+    };
+
+    KudoBoxView.prototype.handleError = function(msg) {};
+
+    KudoBoxView.prototype.createKudo = function() {
+      this.controller.kudo(this.entity, this.entity_id);
+      return false;
+    };
+
+    KudoBoxView.prototype.handleKudoCreate = function() {
+      var $kudoList, template;
+      if (!this.selected) {
+        return;
+      }
+      $kudoList = this.$('#kudo-list');
+      template = this.getTemplateFor(this.currentAthleteTemplate);
+      $kudoList.append(template({
+        athlete: currentAthlete.toJSON()
+      }));
+      this.$('.no-kudos').remove();
+      return this.$('button.create-kudo').addClass('kudoed').attr('disabled', 'disabled');
+    };
+
+    KudoBoxView.prototype.createAthleteElem = function(follower) {
+      var athlete;
+      athlete = new Strava.AthleteListView(follower);
+      return athlete.render().el;
+    };
+
+    return KudoBoxView;
+
+  })(Strava.Feed.SocialBoxView);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.PageVisibilityTracker = (function(superClass) {
+    extend(PageVisibilityTracker, superClass);
+
+    function PageVisibilityTracker() {
+      return PageVisibilityTracker.__super__.constructor.apply(this, arguments);
+    }
+
+    PageVisibilityTracker.prototype.send = function(type, data) {
+      if (type === 'event') {
+        if (data.eventLabel === 'visible') {
+          return this.trigger('pageEnter');
+        } else if (data.eventLabel === 'hidden') {
+          return this.trigger('pageExit');
+        }
+      }
+    };
+
+    PageVisibilityTracker.configure = function() {
+      var tracker;
+      tracker = new this;
+      return Strava.Util.Autotrack.configurePageVisibilityTracker(tracker);
+    };
+
+    return PageVisibilityTracker;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/lightbox'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<header class='modal-header'>\n  <div class='avatar avatar-athlete avatar-sm mr-sm pull-left'>\n    <img class='avatar-img' src='" + ($e($c(this.data.athlete_avatar))) + "' alt='" + ($e($c(this.data.athlete_name))) + "' title='" + ($e($c(this.data.athlete_name))) + "'>\n  </div>\n  <h3 class='lightbox-title'>" + ($e($c(this.data.title))) + "</h3>\n</header>\n<ul class='bottomless tabs topless' id='lightbox-tabs'>\n  <li id='kudos'>\n    <a class='tab'>");
+      $o.push("      " + $e($c(Strava.I18n.Locale.t('templates.feed.lightbox.kudos'))));
+      $o.push("      <span class='kudo_text' data-current-count='" + ($e($c(this.data.kudo_count))) + "'>" + ($e($c(this.data.kudo_text))) + "</span>\n    </a>\n  </li>\n  <li id='comments'>\n    <a class='tab'>");
+      $o.push("      " + $e($c(Strava.I18n.Locale.t('templates.feed.lightbox.comments'))));
+      $o.push("      <span class='comment_text'>" + ($e($c(this.data.comment_text))) + "</span>\n    </a>\n  </li>\n  <li id='achievements' style='display: none'>\n    <a class='tab'>" + ($e($c(Strava.I18n.Locale.t('templates.feed.lightbox.achievements', {
+        achievements_count: this.data.achievements_count
+      })))) + "</a>\n  </li>\n  <li id='group-athletes' style='display: none'>\n    <a class='tab'>" + ($e($c(Strava.I18n.Locale.t('templates.feed.lightbox.other_athletes')))) + "</a>\n  </li>\n</ul>\n<div class='modal-body' id='tab-contents'>\n  <div class='centerAlign'>\n    <div class='sm spinner'>\n      <div class='graphic'></div>\n      <span class='status'></span>\n    </div>\n  </div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.PopoverBoxView = (function(superClass) {
+    var commentBoxViewCache, kudoBoxViewCache;
+
+    extend(PopoverBoxView, superClass);
+
+    commentBoxViewCache = {};
+
+    kudoBoxViewCache = {};
+
+    function PopoverBoxView(commentsController, kudosController, groupRideController) {
+      this.template = 'feed/lightbox';
+      this.lightbox = new Strava.Ui.LightboxView();
+      this.commentsController = commentsController;
+      this.kudosController = kudosController;
+      this.groupRideController = groupRideController;
+      this.commentsController.bind('commentCreated', (function(_this) {
+        return function(resp, key) {
+          return _this.updateCommentCount(key);
+        };
+      })(this)).bind('commentDeleted', (function(_this) {
+        return function(key) {
+          return _this.updateCommentCount(key);
+        };
+      })(this));
+      this.kudosController.bind('kudoCreated', (function(_this) {
+        return function() {
+          return _this.updateKudoCount();
+        };
+      })(this));
+      PopoverBoxView.__super__.constructor.call(this);
+    }
+
+    PopoverBoxView.prototype.render = function(entity, entityId, data, tabSelected, showGroupAthletes, showKudos, activityAthlete) {
+      if (showKudos == null) {
+        showKudos = true;
+      }
+      this.setElement('<div></div>');
+      this.renderTemplate(this.getModelJson(entity, entityId, data));
+      this.lightbox.render(this.el);
+      this.createTabs(entity, entityId, tabSelected, showGroupAthletes, showKudos, activityAthlete, data.comments_disabled);
+      return this;
+    };
+
+    PopoverBoxView.prototype.getModelJson = function(entity, entityId, data) {
+      var key;
+      key = entity + "-" + entityId;
+      data.comment_text = this.getCommentTabText(key, data);
+      if (!data.kudo_count) {
+        data.kudo_count = this.getDOMKudoCount(key);
+      }
+      data.kudo_text = data.kudo_count > 0 ? "(" + (new TwitterCldr.DecimalFormatter().format(data.kudo_count)) + ")" : '';
+      return {
+        data: data
+      };
+    };
+
+    PopoverBoxView.prototype.getCommentTabText = function(key, data) {
+      var comment_count;
+      if (data == null) {
+        data = {};
+      }
+      comment_count = data.comment_count || this.commentsController.getFromHash(key).length;
+      if (comment_count > 0) {
+        return "(" + (new TwitterCldr.DecimalFormatter().format(comment_count)) + ")";
+      } else {
+        return '';
+      }
+    };
+
+    PopoverBoxView.prototype.getDOMKudoCount = function(key) {
+      return this.$$(".feed #" + key + " .count-kudos").data('kudo-count');
+    };
+
+    PopoverBoxView.prototype.updateKudoCount = function() {
+      var $kudo_text, kudo_count;
+      $kudo_text = this.$('.kudo_text');
+      kudo_count = parseInt($kudo_text.data('current-count') || 0, 10);
+      return $kudo_text.html("(" + (new TwitterCldr.DecimalFormatter().format(kudo_count + 1)) + ")");
+    };
+
+    PopoverBoxView.prototype.updateCommentCount = function(key) {
+      var text;
+      text = this.getCommentTabText(key);
+      return this.$('span.comment_text').html(text);
+    };
+
+    PopoverBoxView.prototype.createTabs = function(entity, entityId, tabSelected, showGroupAthletes, showKudos, activityAthlete, commentsDisabled) {
+      var commentSelected, groupRideSelected, kudoSelected, tabController, tabs;
+      if (showKudos == null) {
+        showKudos = true;
+      }
+      commentSelected = kudoSelected = groupRideSelected = false;
+      if (tabSelected === 'comments') {
+        commentSelected = true;
+      } else if (tabSelected === 'kudos') {
+        kudoSelected = true;
+      } else if ('groupriders') {
+        groupRideSelected = true;
+      }
+      tabs = [];
+      tabs.push({
+        selector: 'li#comments',
+        renderer: this.commentBoxView(entity, entityId, commentsDisabled),
+        selected: commentSelected
+      });
+      if (showKudos) {
+        tabs.push({
+          selector: 'li#kudos',
+          renderer: this.kudoBoxView(entity, entityId),
+          selected: kudoSelected
+        });
+        this.$('li#kudos').show();
+      } else {
+        this.$('li#kudos').hide();
+      }
+      if (showGroupAthletes) {
+        tabs.push({
+          selector: 'li#group-athletes',
+          renderer: new Strava.Feed.GroupRideView(this.groupRideController, entity, entityId, activityAthlete),
+          selected: groupRideSelected
+        });
+        this.$('li#group-athletes').show();
+      }
+      tabController = new Strava.Ui.TabController(tabs, '#lightbox-tabs');
+      return tabController.render();
+    };
+
+    PopoverBoxView.prototype.commentBoxView = function(entity, entityId, commentsDisabled) {
+      var key;
+      key = entity + "-" + entityId;
+      if (!commentBoxViewCache[key]) {
+        commentBoxViewCache[key] = new Strava.Feed.CommentBoxView(this.commentsController, entity, entityId, commentsDisabled);
+      }
+      return commentBoxViewCache[key];
+    };
+
+    PopoverBoxView.prototype.kudoBoxView = function(entity, entityId) {
+      var key;
+      key = entity + "-" + entityId;
+      if (!kudoBoxViewCache[key]) {
+        kudoBoxViewCache[key] = new Strava.Feed.KudoBoxView(this.kudosController, entity, entityId);
+      }
+      return kudoBoxViewCache[key];
+    };
+
+    PopoverBoxView.show = function(entity, entityId, data, tabSelected, showGroupAthletes, activityAthlete) {
+      if (tabSelected == null) {
+        tabSelected = 'comments';
+      }
+      if (showGroupAthletes == null) {
+        showGroupAthletes = false;
+      }
+      return this.instance.render(entity, entityId, data, tabSelected, showGroupAthletes, true, activityAthlete);
+    };
+
+    PopoverBoxView.createInstance = function(commentsController, kudosController, groupRideController) {
+      return this.instance = new Strava.Feed.PopoverBoxView(commentsController, kudosController, groupRideController);
+    };
+
+    return PopoverBoxView;
+
+  })(Backbone.View);
+
+  Strava.Feed.PopoverBoxActivityView = (function(superClass) {
+    extend(PopoverBoxActivityView, superClass);
+
+    function PopoverBoxActivityView() {
+      return PopoverBoxActivityView.__super__.constructor.apply(this, arguments);
+    }
+
+    PopoverBoxActivityView.prototype.getDOMKudoCount = function(key) {
+      return this.$$('#kudos .count').data('count');
+    };
+
+    PopoverBoxActivityView.createInstance = function(commentsController, kudosController, groupRideController) {
+      return this.instance = new Strava.Feed.PopoverBoxActivityView(commentsController, kudosController, groupRideController);
+    };
+
+    return PopoverBoxActivityView;
+
+  })(Strava.Feed.PopoverBoxView);
+
+  Strava.Feed.PopoverBoxPostView = (function(superClass) {
+    extend(PopoverBoxPostView, superClass);
+
+    function PopoverBoxPostView() {
+      return PopoverBoxPostView.__super__.constructor.apply(this, arguments);
+    }
+
+    PopoverBoxPostView.createInstance = function(commentsController, kudosController) {
+      return this.instance = new Strava.Feed.PopoverBoxPostView(commentsController, kudosController, null);
+    };
+
+    PopoverBoxPostView.show = function(entity, entityId, data, tabSelected, showKudos) {
+      if (tabSelected == null) {
+        tabSelected = 'comments';
+      }
+      if (showKudos == null) {
+        showKudos = true;
+      }
+      return this.instance.render(entity, entityId, data, tabSelected, false, showKudos);
+    };
+
+    return PopoverBoxPostView;
+
+  })(Strava.Feed.PopoverBoxView);
+
+}).call(this);
+(function() {
+  Strava.module("Strava.Feed.Ui");
+
+  Strava.Feed.Ui = (function() {
+    function Ui() {}
+
+    Ui.commentsController = null;
+
+    Ui.prepareUi = function() {
+      Strava.Feed.Ui.prepareCommentButton();
+      Strava.Ui.Global.prepareAutoresizingTextbox();
+      Strava.Feed.Ui.prepareExpandableAthletesList();
+      Strava.Feed.Ui.prepareExpandCommentsButton();
+      return this.commentsController = new Strava.Lib.CommentsController();
+    };
+
+    Ui.prepareCommentButton = function() {
+      return jQuery('body').on('click', '.js-inline-comments .add-comment, .btn-comment', function() {
+        var feed_row;
+        feed_row = jQuery(this).parents('.feed-entry');
+        feed_row.find('.social').removeClass('has-border');
+        return feed_row.find('.comments form').show().find('textarea').focus();
+      });
+    };
+
+    Ui.prepareExpandableAthletesList = function() {
+      return jQuery('body').on('click', '.feed-entry .expand-all.expand-all-athletes', function() {
+        var entry;
+        entry = jQuery(this).parents().find('.feed-entry');
+        entry.find('li.hidden').removeClass('hidden');
+        entry.find('li.last-child').removeClass('last-child');
+        jQuery(this).remove();
+        return entry.find('.entry-footer-action').remove();
+      });
+    };
+
+    Ui.prepareExpandCommentsButton = function() {
+      return jQuery('body').on('click', '.comments .expand-all', function() {
+        return jQuery(this).hide().next().find('li:not(:visible)').show();
+      });
+    };
+
+    return Ui;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module("Strava.Ui");
+
+  Strava.Ui.TabController = (function(superClass) {
+    extend(TabController, superClass);
+
+    function TabController(tabs, tabSelector, contentSelector) {
+      if (tabSelector == null) {
+        tabSelector = 'ul.tabs';
+      }
+      if (contentSelector == null) {
+        contentSelector = '#tab-contents';
+      }
+      this.el = tabSelector;
+      this.tabs = tabs || [];
+      this.contentSelector = contentSelector;
+      this.bindToTabs();
+      TabController.__super__.constructor.call(this);
+      this.tabClickHandler(function(controller, tab) {
+        if (!tab.renderer.selected) {
+          return controller.showTab(tab);
+        }
+      });
+    }
+
+    TabController.prototype.render = function() {
+      var selectedTab;
+      selectedTab = _.find(this.tabs, function(tab) {
+        return tab.selected;
+      });
+      return this.showTab(selectedTab);
+    };
+
+    TabController.prototype.unselectTabs = function() {
+      var i, len, ref, results, tab;
+      ref = this.tabs;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        tab = ref[i];
+        tab.renderer.unselect();
+        results.push(this.$(tab.selector).removeClass('selected'));
+      }
+      return results;
+    };
+
+    TabController.prototype.selectTab = function(tab) {
+      tab.renderer.select();
+      tab.renderer.render(this.contentSelector);
+      tab.renderer.show();
+      return this.$(tab.selector).addClass('selected');
+    };
+
+    TabController.prototype.showTab = function(tab) {
+      this.unselectTabs();
+      return this.selectTab(tab);
+    };
+
+    TabController.prototype.tabClickHandler = function(handler) {
+      return this.setOrGet('_tabClickHandler', handler);
+    };
+
+    TabController.prototype.addTab = function(selector, renderer, selected) {
+      var d;
+      if (selected == null) {
+        selected = false;
+      }
+      d = {
+        selector: selector,
+        renderer: renderer,
+        selected: selected
+      };
+      this.tabs.push(d);
+      renderer.on('close', (function(_this) {
+        return function() {
+          return _this.trigger('close');
+        };
+      })(this));
+      renderer.on('actionSuccess', (function(_this) {
+        return function(args) {
+          return _this.trigger('actionSuccess', args);
+        };
+      })(this));
+      renderer.on('actionError', (function(_this) {
+        return function(args) {
+          return _this.trigger('actionError', args);
+        };
+      })(this));
+      return this.$(selector).on('click', (function(_this) {
+        return function() {
+          return _this.tabClickHandler()(_this, d);
+        };
+      })(this));
+    };
+
+    TabController.prototype.bindToTabs = function() {
+      return jQuery.each(this.tabs, (function(_this) {
+        return function(index, tab) {
+          return jQuery(tab.selector).bind('click', function(eventData) {
+            return _this.tabClickHandler()(_this, tab);
+          });
+        };
+      })(this));
+    };
+
+    return TabController;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['performance_goals/tooltip'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div id='js-snw-performance-goals-upsell'>\n  <a class='dismiss' href='javascript:;'>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.dismiss'))));
+      $o.push("  </a>\n  <h4 class='h5 title'>\n    <div class='badge premium sm'></div>");
+      $o.push("    " + $e($c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.goals'))));
+      $o.push("  </h4>\n  <div class='content'>");
+      $o.push("    " + $c(Strava.I18n.Locale.t('templates.performance_goals.tooltip.upsell_v3_html')));
+      $o.push("  </div>\n  <div class='arrow bottom'></div>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Ui');
+
+  Strava.Ui.TooltipView = (function(superClass) {
+    extend(TooltipView, superClass);
+
+    TooltipView.prototype.tagName = 'div';
+
+    TooltipView.prototype.className = 'super-tooltip';
+
+    TooltipView.prototype.attributes = {
+      style: 'display: none'
+    };
+
+    TooltipView.prototype.events = {
+      'click .dismiss': 'dismissTooltip'
+    };
+
+    function TooltipView(template) {
+      TooltipView.__super__.constructor.call(this);
+      if (JST[template]) {
+        this.template = template;
+      } else {
+        this.createTemplate(template);
+      }
+    }
+
+    TooltipView.prototype.render = function(data, target) {
+      this.renderTemplate({
+        data: this.prepareData(data)
+      });
+      this.delegateEvents();
+      this.show(target);
+      return this;
+    };
+
+    TooltipView.prototype.prepareData = function(data) {
+      return data;
+    };
+
+    TooltipView.prototype.show = function(target) {
+      var $arrow, anchor, positionLeft, positionTop, shifted, target_pos;
+      this.$$('.super-tooltip').remove();
+      this.$$('body').append(this.el);
+      anchor = this.$$(target);
+      target_pos = anchor.offset();
+      $arrow = this.$('div.arrow');
+      if ($arrow.hasClass('top')) {
+        positionTop = target_pos.top + anchor.outerHeight() + 10;
+      } else {
+        positionTop = target_pos.top - (this.$el.height() + 15);
+      }
+      shifted = false;
+      if (positionTop < 0) {
+        positionTop = 0;
+        shifted = true;
+      } else if (positionTop + this.$el.outerHeight() > this.$$(window).height() + window.pageYOffset) {
+        positionTop = this.$$(window).height() + window.pageYOffset - this.$el.outerHeight();
+        shifted = true;
+      }
+      positionLeft = target_pos.left - this.$el.width() / 2 + anchor.outerWidth() / 2;
+      if (positionLeft < 0) {
+        positionLeft = 0;
+        shifted = true;
+      } else if (positionLeft + this.$el.outerWidth() > this.$$(window).width() + window.pageXOffset) {
+        positionLeft = this.$$(window).width() + window.pageXOffset - this.$el.outerWidth();
+        shifted = true;
+      }
+      if (shifted) {
+        $arrow.hide();
+      }
+      this.$el.css({
+        left: positionLeft,
+        top: positionTop
+      });
+      return this.$el.fadeIn('fast');
+    };
+
+    TooltipView.prototype.dismissTooltip = function() {
+      this.$el.remove();
+      return false;
+    };
+
+    TooltipView.createInstance = function(template, klass) {
+      if (this.instance == null) {
+        this.instance = new klass(template);
+        this.instance.$document().click((function(_this) {
+          return function(e) {
+            if (_this.instance.$el.is(':visible') && !jQuery(e.target).parents('.super-tooltip').length) {
+              return _this.instance.dismissTooltip();
+            }
+          };
+        })(this));
+      }
+      return this.instance;
+    };
+
+    TooltipView.show = function(data, target) {
+      return this.instance.render(data, target);
+    };
+
+    return TooltipView;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['feed/goal_tooltip'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='dismiss'>" + ($e($c(Strava.I18n.Locale.t('templates.feed.goal_tooltip.dismiss')))) + "</a>\n<h4 class='h5 title'>\n  <div class='badge premium sm'></div>");
+      $o.push("  " + $e($c(Strava.I18n.Locale.t('templates.feed.goal_tooltip.title'))));
+      $o.push("</h4>\n<div class='content'>");
+      $o.push("  " + $c(Strava.I18n.Locale.t('templates.feed.goal_tooltip.upgrade_v2_html', {
+        url: '/premium/?source=progress-goals#goals'
+      })));
+      $o.push("</div>\n<div class='arrow bottom'></div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Feed');
+
+  Strava.Feed.GoalTooltipView = (function(superClass) {
+    extend(GoalTooltipView, superClass);
+
+    function GoalTooltipView() {
+      return GoalTooltipView.__super__.constructor.apply(this, arguments);
+    }
+
+    GoalTooltipView.prototype.prepareData = function(data) {
+      return {
+        name: data.athlete_firstname
+      };
+    };
+
+    GoalTooltipView.createInstance = function() {
+      return Strava.Ui.TooltipView.createInstance('feed/goal_tooltip', this);
+    };
+
+    GoalTooltipView.show = function(data, target) {
+      return Strava.Ui.TooltipView.show(data, target);
+    };
+
+    return GoalTooltipView;
+
+  })(Strava.Ui.TooltipView);
+
+}).call(this);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

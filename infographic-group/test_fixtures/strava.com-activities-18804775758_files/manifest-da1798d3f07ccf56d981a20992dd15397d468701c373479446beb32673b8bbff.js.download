@@ -1,0 +1,980 @@
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.Action = (function(superClass) {
+    extend(Action, superClass);
+
+    function Action(athlete_id) {
+      this.athlete_id = athlete_id;
+      this.selector = 'ul.following.athletes > li';
+      Action.__super__.constructor.call(this);
+    }
+
+    Action.prototype.setController = function(controller) {
+      return this.controller = controller;
+    };
+
+    Action.prototype.use_selector = function(selector) {
+      return this.selector = selector;
+    };
+
+    Action.prototype.enter = function(elem) {};
+
+    Action.prototype.execute = function(elem) {};
+
+    Action.prototype.handleSuccessExit = function(follow_id) {
+      var target;
+      target = jQuery(this.selector + "[data-athlete-id='" + this.athlete_id + "']").find('a.primary[data-follow]');
+      return target.attr('data-follow', follow_id).removeClass('disabled').removeClass('current-action');
+    };
+
+    return Action;
+
+  })(Backbone.View);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.AcceptAction = (function(superClass) {
+    extend(AcceptAction, superClass);
+
+    function AcceptAction(athlete_id) {
+      AcceptAction.__super__.constructor.call(this, athlete_id);
+    }
+
+    AcceptAction.prototype.execute = function(elem) {
+      this.controller.acceptFollow(elem.data('follow'));
+      return this.hideRow(elem);
+    };
+
+    AcceptAction.prototype.hideRow = function(elem) {
+      var escapedName, name, parent;
+      parent = elem.parents("li[data-athlete-id='" + this.athlete_id + "']");
+      name = parent.find('.text-callout a').text();
+      escapedName = _.template('{{name}}', {
+        name: name
+      });
+      return parent.fadeOut('slow', (function(_this) {
+        return function() {
+          parent.empty().addClass('centered').html(Strava.I18n.Locale.t('templates.follows.accept_action_v2_html', {
+            name: escapedName,
+            url: "/athletes/" + _this.athlete_id
+          }));
+          return parent.addClass('action-success').fadeIn('slow').animate({
+            'min-height': 0
+          }, 'slow');
+        };
+      })(this));
+    };
+
+    return AcceptAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.Factory = (function() {
+    function Factory() {}
+
+    Factory.controller = null;
+
+    Factory.createAction = function(state, athlete_id) {
+      switch (state) {
+        case 'follow_with_approval':
+          return this.createFollowWithApprovalAction(athlete_id);
+        case 'follow':
+          return this.createFollowAction(athlete_id);
+        case 'unfollow_for_approval':
+          return this.createUnfollowForApprovalAction(athlete_id);
+        case 'unfollow':
+          return this.createUnfollowAction(athlete_id);
+        case 'cancel_pending':
+          return this.createPendingApprovalAction(athlete_id);
+        case 'accept':
+          return this.createAcceptAction(athlete_id);
+        case 'ignore':
+          return this.createIgnoreAction(athlete_id);
+      }
+    };
+
+    Factory.createActionFromClass = function(klass, athlete_id) {
+      var action;
+      action = new klass(athlete_id);
+      action.setController(this.controller);
+      return action;
+    };
+
+    Factory.createFollowAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.FollowAction, athlete_id);
+    };
+
+    Factory.createFollowWithApprovalAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.FollowWithApprovalAction, athlete_id);
+    };
+
+    Factory.createUnfollowForApprovalAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.UnfollowForApprovalAction, athlete_id);
+    };
+
+    Factory.createUnfollowAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.UnfollowAction, athlete_id);
+    };
+
+    Factory.createPendingApprovalAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.PendingApprovalAction, athlete_id);
+    };
+
+    Factory.createAcceptAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.AcceptAction, athlete_id);
+    };
+
+    Factory.createIgnoreAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.IgnoreAction, athlete_id);
+    };
+
+    return Factory;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.FollowAction = (function(superClass) {
+    extend(FollowAction, superClass);
+
+    function FollowAction(athlete_id) {
+      FollowAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#follow_button');
+    }
+
+    FollowAction.prototype.execute = function(elem) {
+      var exitAction, successExit;
+      successExit = (function(_this) {
+        return function(follow_id) {
+          return _this.handleSuccessExit(follow_id);
+        };
+      })(this);
+      this.controller.follow(this.athlete_id, successExit);
+      exitAction = Strava.Follows.Factory.createUnfollowAction(this.athlete_id);
+      return exitAction.enter(elem);
+    };
+
+    FollowAction.prototype.enter = function(elem) {
+      return elem.replaceWith(this.template({}));
+    };
+
+    return FollowAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.FollowWithApprovalAction = (function(superClass) {
+    extend(FollowWithApprovalAction, superClass);
+
+    function FollowWithApprovalAction(athlete_id) {
+      FollowWithApprovalAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#follow_with_approval_button');
+    }
+
+    FollowWithApprovalAction.prototype.execute = function(elem) {
+      var exitAction, successExit;
+      successExit = (function(_this) {
+        return function(follow_id) {
+          return _this.handleSuccessExit(follow_id);
+        };
+      })(this);
+      this.controller.requestFollow(this.athlete_id, successExit);
+      exitAction = Strava.Follows.Factory.createPendingApprovalAction(this.athlete_id);
+      return exitAction.enter(elem);
+    };
+
+    FollowWithApprovalAction.prototype.enter = function(elem) {
+      var $athleteBox;
+      $athleteBox = elem.closest("li[data-athlete-id='" + this.athlete_id + "']");
+      if ($athleteBox.length && $athleteBox.find('div.sprite.lock').length === 0) {
+        elem.before('<span class="app-icon-wrapper sprite lock"><span class="app-icon icon-private icon-dark"></span></span>');
+      }
+      return elem.replaceWith(this.template({}));
+    };
+
+    return FollowWithApprovalAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.FollowsController = (function(superClass) {
+    extend(FollowsController, superClass);
+
+    function FollowsController(url, followerId, stmSource) {
+      this.url = url;
+      this.followerId = followerId;
+      this.stmSource = "stm-source-" + stmSource;
+      FollowsController.__super__.constructor.call(this);
+    }
+
+    FollowsController.prototype.follow = function(followingId, success) {
+      var data;
+      if (success == null) {
+        success = (function() {});
+      }
+      data = {
+        stm_source: this.stmSource,
+        follow: {
+          following_id: followingId,
+          follower_id: this.followerId
+        }
+      };
+      return this.save(null, {
+        url: this.url,
+        type: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json',
+        success: function(model, resp) {
+          return success(resp.follow_id);
+        }
+      });
+    };
+
+    FollowsController.prototype.unFollow = function(followId) {
+      return this.fetch({
+        url: this.urlWithStmSource(this.url + "/" + followId),
+        type: 'DELETE'
+      });
+    };
+
+    FollowsController.prototype.removeFollow = function(followId) {
+      return this.fetch({
+        url: this.urlWithStmSource(this.url + "/" + followId),
+        type: 'DELETE',
+        cache: false
+      });
+    };
+
+    FollowsController.prototype.requestFollow = function(followingId, success) {
+      return this.follow(followingId, success);
+    };
+
+    FollowsController.prototype.acceptFollow = function(followId) {
+      return this.fetch({
+        url: this.urlWithStmSource(this.url + "/" + followId + "/accept"),
+        type: 'POST',
+        cache: false
+      });
+    };
+
+    FollowsController.prototype.cancelRequest = function(followId) {
+      return this.unFollow(followId);
+    };
+
+    FollowsController.prototype.ignoreFollow = function(followId) {
+      return this.fetch({
+        url: this.urlWithStmSource(this.url + "/" + followId + "/reject"),
+        type: 'POST',
+        cache: false
+      });
+    };
+
+    FollowsController.prototype.blockUser = function(followId, blockedAthleteId, success) {
+      var data;
+      if (success == null) {
+        success = (function() {});
+      }
+      if (followId != null) {
+        return this.fetch({
+          url: this.urlWithStmSource(this.url + "/" + followId + "/block"),
+          type: 'PUT',
+          success: function(model, resp) {
+            return success(resp.follow_id);
+          }
+        });
+      } else {
+        data = {
+          stm_source: this.stmSource,
+          follow: {
+            following_id: this.followerId,
+            follower_id: blockedAthleteId
+          }
+        };
+        return this.fetch({
+          url: this.url + "/block",
+          type: 'POST',
+          data: JSON.stringify(data),
+          contentType: 'application/json',
+          success: function(model, resp) {
+            return success(resp.follow_id);
+          }
+        });
+      }
+    };
+
+    FollowsController.prototype.unblockUser = function(followId, success) {
+      if (success == null) {
+        success = (function() {});
+      }
+      return this.fetch({
+        url: this.url + "/" + followId + "/unblock",
+        type: 'POST',
+        cache: false,
+        success: function(model, resp) {
+          return success();
+        }
+      });
+    };
+
+    FollowsController.prototype.parse = function(resp) {
+      return {
+        id: 1
+      };
+    };
+
+    FollowsController.prototype.urlWithStmSource = function(url) {
+      if (this.stmSource) {
+        return url + "?stm_source=" + this.stmSource;
+      } else {
+        return url;
+      }
+    };
+
+    return FollowsController;
+
+  })(Backbone.Model);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.IgnoreAction = (function(superClass) {
+    extend(IgnoreAction, superClass);
+
+    function IgnoreAction(athlete_id) {
+      IgnoreAction.__super__.constructor.call(this, athlete_id);
+    }
+
+    IgnoreAction.prototype.execute = function(elem) {
+      var $athleteBox;
+      this.controller.ignoreFollow(elem.data('follow'));
+      $athleteBox = elem.closest("li[data-athlete-id='" + this.athlete_id + "']");
+      return $athleteBox.fadeOut(300, function() {
+        return $athleteBox.remove();
+      });
+    };
+
+    return IgnoreAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.PendingApprovalAction = (function(superClass) {
+    extend(PendingApprovalAction, superClass);
+
+    function PendingApprovalAction(athlete_id) {
+      PendingApprovalAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#cancel_pending_button');
+    }
+
+    PendingApprovalAction.prototype.execute = function(elem) {
+      var exitAction;
+      this.controller.cancelRequest(elem.data('follow'));
+      exitAction = Strava.Follows.Factory.createFollowWithApprovalAction(this.athlete_id);
+      return exitAction.enter(elem);
+    };
+
+    PendingApprovalAction.prototype.enter = function(elem) {
+      return elem.replaceWith(this.template({}));
+    };
+
+    return PendingApprovalAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.UnfollowAction = (function(superClass) {
+    extend(UnfollowAction, superClass);
+
+    function UnfollowAction(athlete_id) {
+      UnfollowAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#unfollow_button');
+    }
+
+    UnfollowAction.prototype.execute = function(elem) {
+      var exitAction;
+      this.controller.unFollow(elem.data('follow'));
+      exitAction = Strava.Follows.Factory.createFollowAction(this.athlete_id);
+      return exitAction.enter(elem);
+    };
+
+    UnfollowAction.prototype.enter = function(elem) {
+      return elem.replaceWith(this.template({}));
+    };
+
+    return UnfollowAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows');
+
+  Strava.Follows.UnfollowForApprovalAction = (function(superClass) {
+    extend(UnfollowForApprovalAction, superClass);
+
+    function UnfollowForApprovalAction(athlete_id) {
+      UnfollowForApprovalAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#unfollow_for_approval_button');
+    }
+
+    UnfollowForApprovalAction.prototype.execute = function(elem) {
+      var exitAction;
+      this.controller.unFollow(elem.data('follow'));
+      exitAction = Strava.Follows.Factory.createFollowWithApprovalAction(this.athlete_id);
+      return exitAction.enter(elem);
+    };
+
+    UnfollowForApprovalAction.prototype.enter = function(elem) {
+      return elem.replaceWith(this.template({}));
+    };
+
+    return UnfollowForApprovalAction;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows.Blocks');
+
+  Strava.Follows.Blocks.Action = (function(superClass) {
+    extend(Action, superClass);
+
+    function Action() {
+      return Action.__super__.constructor.apply(this, arguments);
+    }
+
+    Action.prototype.handleSuccessExit = function(followId) {
+      var target;
+      target = jQuery(this.selector + "[data-athlete-id='" + this.athlete_id + "']").find('a.secondary[data-follow]');
+      return target.attr('data-follow', followId).removeClass('disabled').removeClass('current-action');
+    };
+
+    Action.prototype.handleListHide = function(elem, textKey) {
+      var name, parent;
+      parent = elem.closest("li[data-athlete-id='" + this.athlete_id + "']");
+      name = parent.find('.text-callout a').text();
+      return parent.fadeOut('fast', function() {
+        parent.empty().addClass('centered').text(Strava.I18n.Locale.t(textKey, {
+          name: name
+        }));
+        return parent.addClass('action-success').fadeIn('fast').animate({
+          'min-height': 0
+        }, 'fast');
+      });
+    };
+
+    return Action;
+
+  })(Strava.Follows.Action);
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['follows/block_follow'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='alt button follow primary small' data-state='follow' href='javascript:;'>" + ($e($c(Strava.I18n.Locale.t('templates.follows.generic.follow')))) + "</a>\n<div class='drop-down-menu transparent'>\n  <div class='gear selection'>&nbsp;</div>\n  <ul class='options'>\n    <li>\n      <a class='block nav secondary' data-follow=''>" + ($e($c(Strava.I18n.Locale.t('templates.follows.generic.block_athlete')))) + "</a>\n    </li>\n    <li>\n      <a class='block nav secondary' href='javascript:;'>" + ($e($c(Strava.I18n.Locale.t('templates.follows.generic.whats_blocking')))) + "</a>\n    </li>\n  </ul>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['follows/block_requires_approval'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<a class='btn-primary button follow' data-state='follow_with_approval' href='javascript:;'>");
+      $o.push("  " + $e($c(Strava.I18n.Locale.t('templates.follows.generic.request_follow'))));
+      $o.push("</a>\n<div class='drop-down-menu transparent'>\n  <div class='gear selection'>&nbsp;</div>\n  <ul class='options'>\n    <li>\n      <a class='block nav secondary' href='javascript:;' data-follow=''>");
+      $o.push("        " + $e($c(Strava.I18n.Locale.t('templates.follows.generic.block_athlete'))));
+      $o.push("      </a>\n    </li>\n    <li>\n      <a class='block nav secondary' href='javascript:;'>");
+      $o.push("        " + $e($c(Strava.I18n.Locale.t('templates.follows.generic.whats_blocking'))));
+      $o.push("      </a>\n    </li>\n  </ul>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  if (window.JST == null) {
+    window.JST = {};
+  }
+
+  window.JST['follows/only_block_follow'] = function(context) {
+    return (function() {
+      var $c, $e, $o;
+      $e = window.HAML.escape;
+      $c = window.HAML.cleanValue;
+      $o = [];
+      $o.push("<div class='drop-down-menu'>\n  <div class='gear selection'>&nbsp;</div>\n  <ul class='options'>\n    <li>\n      <a class='block nav secondary' href='javascript:;' data-follow=''>");
+      $o.push("        " + $e($c(Strava.I18n.Locale.t('templates.follows.generic.block_athlete'))));
+      $o.push("      </a>\n    </li>\n    <li>\n      <a class='block nav secondary' href='javascript:;'>");
+      $o.push("        " + $e($c(Strava.I18n.Locale.t('templates.follows.generic.whats_blocking'))));
+      $o.push("      </a>\n    </li>\n  </ul>\n</div>");
+      return $o.join("\n").replace(/\s([\w-]+)='true'/mg, ' $1').replace(/\s([\w-]+)='false'/mg, '').replace(/\s(?:id|class)=(['"])(\1)/mg, "");
+    }).call(window.HAML.context(context));
+  };
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows.Blocks');
+
+  Strava.Follows.Blocks.BlockAction = (function(superClass) {
+    extend(BlockAction, superClass);
+
+    function BlockAction(athlete_id) {
+      BlockAction.__super__.constructor.call(this, athlete_id);
+      this.createTemplate('#block-light-box');
+    }
+
+    BlockAction.prototype.execute = function(elem) {
+      return this.showBox(elem);
+    };
+
+    BlockAction.prototype.handleEnter = function(elem) {};
+
+    BlockAction.prototype.handleBlock = function(elem) {};
+
+    BlockAction.prototype.handleCancel = function(elem) {};
+
+    BlockAction.prototype.showBox = function(elem) {
+      var $box, setTimeoutHandler;
+      $box = jQuery(this.template({}));
+      jQuery('body').append($box);
+      this.handleEnter(elem);
+      setTimeoutHandler = (function(_this) {
+        return function() {
+          return _this.$document().one('click', function() {
+            _this.handleCancel(elem);
+            return $box.remove();
+          });
+        };
+      })(this);
+      setTimeout(setTimeoutHandler, 0);
+      $box.click(function(e) {
+        return false;
+      });
+      $box.find('a.confirm-block').click((function(_this) {
+        return function() {
+          _this.handleBlock(elem);
+          jQuery('ul li#blocked-followers-tab').fadeIn();
+          $box.remove();
+          return false;
+        };
+      })(this));
+      return $box.find('a.cancel').click((function(_this) {
+        return function() {
+          _this.handleCancel(elem);
+          $box.remove();
+          return false;
+        };
+      })(this));
+    };
+
+    return BlockAction;
+
+  })(Strava.Follows.Blocks.Action);
+
+  Strava.Follows.Blocks.ListBlockAction = (function(superClass) {
+    extend(ListBlockAction, superClass);
+
+    function ListBlockAction() {
+      return ListBlockAction.__super__.constructor.apply(this, arguments);
+    }
+
+    ListBlockAction.prototype.handleEnter = function(elem) {
+      return elem.closest("li[data-athlete-id='" + this.athlete_id + "']").addClass('highlight');
+    };
+
+    ListBlockAction.prototype.handleBlock = function(elem) {
+      this.handleListHide(elem, 'templates.follows.block_action');
+      return this.controller.blockUser(elem.data('follow'), this.athlete_id);
+    };
+
+    ListBlockAction.prototype.handleCancel = function(elem) {
+      var $athleteBox;
+      $athleteBox = elem.closest("li[data-athlete-id='" + this.athlete_id + "']");
+      return $athleteBox.removeClass('highlight');
+    };
+
+    return ListBlockAction;
+
+  })(Strava.Follows.Blocks.BlockAction);
+
+  Strava.Follows.Blocks.FormBlockAction = (function(superClass) {
+    extend(FormBlockAction, superClass);
+
+    function FormBlockAction(athlete_id) {
+      FormBlockAction.__super__.constructor.call(this, athlete_id);
+      this.blockTemplate = 'follows/block_follow';
+      this.blockOnlyTemplate = 'follows/only_block_follow';
+      this.blockWithApproval = 'follows/block_requires_approval';
+    }
+
+    FormBlockAction.prototype.enter = function(elem) {
+      var parent, template;
+      parent = elem.closest(this.selector);
+      template = this.getTemplate(parent);
+      parent.empty();
+      return parent.html(this.renderTemplate({}, template));
+    };
+
+    FormBlockAction.prototype.getTemplate = function(parent) {
+      var is_blocked, requiresApproval;
+      is_blocked = parent.data('is-blocked');
+      requiresApproval = parent.data('requires-approval');
+      if (is_blocked) {
+        return this.blockOnlyTemplate;
+      } else {
+        if (requiresApproval) {
+          return this.blockWithApproval;
+        } else {
+          return this.blockTemplate;
+        }
+      }
+    };
+
+    FormBlockAction.prototype.handleBlock = function(elem) {
+      var follow_id, successExit;
+      successExit = (function(_this) {
+        return function(follow_id) {
+          var unblockAction;
+          unblockAction = Strava.Follows.Blocks.Factory.createFormUnblockAction(_this.athlete_id);
+          unblockAction.enter(elem);
+          return _this.handleSuccessExit(follow_id);
+        };
+      })(this);
+      follow_id = elem.data('follow');
+      if ((follow_id != null) && (typeof follow_id) === 'string') {
+        follow_id = new Strava.Util.StringUtils().strip(follow_id);
+        if (follow_id.length === 0) {
+          follow_id = null;
+        }
+      }
+      return this.controller.blockUser(follow_id, this.athlete_id, successExit);
+    };
+
+    return FormBlockAction;
+
+  })(Strava.Follows.Blocks.BlockAction);
+
+}).call(this);
+(function() {
+  Strava.module('Strava.Follows.Blocks');
+
+  Strava.Follows.Blocks.Factory = (function() {
+    function Factory() {}
+
+    Factory.controller = null;
+
+    Factory.createBlockMenu = function(state, athlete_id, selector) {
+      if (selector === '.follow-action') {
+        return this.createFormBlockMenu(state, athlete_id);
+      } else {
+        return this.createListBlockMenu(state, athlete_id);
+      }
+    };
+
+    Factory.createFormBlockMenu = function(state, athlete_id) {
+      switch (state) {
+        case 'block':
+          return this.createFormBlockAction(athlete_id);
+        case 'unblock':
+          return this.createFormUnblockAction(athlete_id);
+      }
+    };
+
+    Factory.createListBlockMenu = function(state, athlete_id) {
+      switch (state) {
+        case 'block':
+          return this.createListBlockAction(athlete_id);
+        case 'unblock':
+          return this.createListUnblockAction(athlete_id);
+        case 'removeFollower':
+          return this.createListRemoveAction(athlete_id);
+      }
+    };
+
+    Factory.createActionFromClass = function(klass, athlete_id) {
+      var action;
+      action = new klass(athlete_id);
+      action.setController(this.controller);
+      return action;
+    };
+
+    Factory.createListBlockAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.Blocks.ListBlockAction, athlete_id);
+    };
+
+    Factory.createListUnblockAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.Blocks.ListUnblockAction, athlete_id);
+    };
+
+    Factory.createListRemoveAction = function(athlete_id) {
+      return this.createActionFromClass(Strava.Follows.Blocks.ListRemoveAction, athlete_id);
+    };
+
+    Factory.createFormBlockAction = function(athlete_id) {
+      var action;
+      action = this.createActionFromClass(Strava.Follows.Blocks.FormBlockAction, athlete_id);
+      action.use_selector('.follow-action');
+      return action;
+    };
+
+    Factory.createFormUnblockAction = function(athlete_id) {
+      var action;
+      action = this.createActionFromClass(Strava.Follows.Blocks.FormUnblockAction, athlete_id);
+      action.use_selector('.follow-action');
+      return action;
+    };
+
+    return Factory;
+
+  })();
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows.Blocks');
+
+  Strava.Follows.Blocks.RemoveAction = (function(superClass) {
+    extend(RemoveAction, superClass);
+
+    function RemoveAction(athlete_id) {
+      RemoveAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#remove-light-box');
+    }
+
+    RemoveAction.prototype.execute = function(elem) {
+      return this.show_box(elem);
+    };
+
+    RemoveAction.prototype.handleEnter = function(elem) {};
+
+    RemoveAction.prototype.handleRemove = function(elem) {};
+
+    RemoveAction.prototype.handleCancel = function(elem) {};
+
+    RemoveAction.prototype.show_box = function(elem) {
+      var $box, setTimeoutHandler;
+      $box = jQuery(this.template({}));
+      jQuery('body').append($box);
+      this.handleEnter(elem);
+      setTimeoutHandler = (function(_this) {
+        return function() {
+          return _this.$document().one('click', function() {
+            _this.handleCancel(elem);
+            return $box.remove();
+          });
+        };
+      })(this);
+      setTimeout(setTimeoutHandler, 0);
+      $box.click(function(e) {
+        return false;
+      });
+      $box.find('a.confirm-block').click((function(_this) {
+        return function() {
+          _this.handleRemove(elem);
+          $box.remove();
+          return false;
+        };
+      })(this));
+      return $box.find('a.cancel').click((function(_this) {
+        return function() {
+          _this.handleCancel(elem);
+          $box.remove();
+          return false;
+        };
+      })(this));
+    };
+
+    return RemoveAction;
+
+  })(Strava.Follows.Blocks.Action);
+
+  Strava.Follows.Blocks.ListRemoveAction = (function(superClass) {
+    extend(ListRemoveAction, superClass);
+
+    function ListRemoveAction() {
+      return ListRemoveAction.__super__.constructor.apply(this, arguments);
+    }
+
+    ListRemoveAction.prototype.handleEnter = function(elem) {
+      return elem.closest("li[data-athlete-id='" + this.athlete_id + "']").addClass('highlight');
+    };
+
+    ListRemoveAction.prototype.handleRemove = function(elem) {
+      this.handleListHide(elem, 'templates.follows.remove_action');
+      return this.controller.removeFollow(elem.data('follow'));
+    };
+
+    ListRemoveAction.prototype.handleCancel = function(elem) {
+      var $athleteBox;
+      $athleteBox = elem.closest("li[data-athlete-id='" + this.athlete_id + "']");
+      return $athleteBox.removeClass('highlight');
+    };
+
+    return ListRemoveAction;
+
+  })(Strava.Follows.Blocks.RemoveAction);
+
+}).call(this);
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  Strava.module('Strava.Follows.Blocks');
+
+  Strava.Follows.Blocks.UnblockAction = (function(superClass) {
+    extend(UnblockAction, superClass);
+
+    function UnblockAction(athlete_id) {
+      UnblockAction.__super__.constructor.call(this, athlete_id);
+    }
+
+    UnblockAction.prototype.execute = function(elem) {};
+
+    return UnblockAction;
+
+  })(Strava.Follows.Blocks.Action);
+
+  Strava.Follows.Blocks.ListUnblockAction = (function(superClass) {
+    extend(ListUnblockAction, superClass);
+
+    function ListUnblockAction() {
+      return ListUnblockAction.__super__.constructor.apply(this, arguments);
+    }
+
+    ListUnblockAction.prototype.execute = function(elem) {
+      this.controller.unblockUser(elem.data('follow'));
+      return this.handleListHide(elem, 'templates.follows.unblock_action');
+    };
+
+    return ListUnblockAction;
+
+  })(Strava.Follows.Blocks.UnblockAction);
+
+  Strava.Follows.Blocks.FormUnblockAction = (function(superClass) {
+    extend(FormUnblockAction, superClass);
+
+    function FormUnblockAction(athlete_id) {
+      FormUnblockAction.__super__.constructor.call(this, athlete_id);
+      this.create_template('#unblock_follow_template');
+    }
+
+    FormUnblockAction.prototype.enter = function(elem) {
+      var parent;
+      parent = elem.closest(this.selector);
+      parent.empty();
+      return parent.html(this.template({}));
+    };
+
+    FormUnblockAction.prototype.execute = function(elem) {
+      var successExit;
+      successExit = (function(_this) {
+        return function() {
+          var blockAction;
+          blockAction = Strava.Follows.Blocks.Factory.createFormBlockAction(_this.athlete_id);
+          blockAction.enter(elem);
+          return _this.handleSuccessExit('');
+        };
+      })(this);
+      return this.controller.unblockUser(elem.data('follow'), successExit);
+    };
+
+    return FormUnblockAction;
+
+  })(Strava.Follows.Blocks.UnblockAction);
+
+}).call(this);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

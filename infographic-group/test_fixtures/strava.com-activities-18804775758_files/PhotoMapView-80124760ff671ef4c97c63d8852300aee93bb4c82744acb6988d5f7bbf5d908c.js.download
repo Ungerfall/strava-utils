@@ -1,0 +1,37 @@
+(function() {
+  Strava.module('Strava.ExternalPhotos.Views');
+
+  Strava.ExternalPhotos.Views.PhotoMapView = (function() {
+    function PhotoMapView(model) {
+      this.model = model;
+      this.model.on('change:report_reason', (function(_this) {
+        return function() {
+          return _this.handleHide();
+        };
+      })(this));
+    }
+
+    PhotoMapView.prototype.render = function(map) {
+      this.marker = Strava.Maps.photoMarker.createFromPhoto(this.model, map);
+      return this.marker.addClickListener((function(_this) {
+        return function(m) {
+          return _this.handleMarkerClick(m);
+        };
+      })(this));
+    };
+
+    PhotoMapView.prototype.handleMarkerClick = function(marker) {
+      marker.bringToFront();
+      this.model.selected();
+      return Strava.ExternalPhotos.Views.PhotoLightboxView.show(this.model);
+    };
+
+    PhotoMapView.prototype.handleHide = function() {
+      return this.marker.hide();
+    };
+
+    return PhotoMapView;
+
+  })();
+
+}).call(this);
