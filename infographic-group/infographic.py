@@ -81,9 +81,14 @@ def main():
 
     def _api_detail(activity_id: int) -> dict:
         nonlocal _browser, _detail_via_oauth
+        cached = db.get_activity_detail_cache(activity_id)
+        if cached:
+            _detail_via_oauth = False
+            return cached
         try:
             result = sc.get_activity_detail(activity_id)
             _detail_via_oauth = True
+            db.upsert_activity_detail_cache(activity_id, result)
             return result
         except requests.HTTPError as e:
             if e.response.status_code != 404:
@@ -92,18 +97,27 @@ def main():
         print("      [info] Not accessible via OAuth — using browser session…")
         if _browser is None:
             _browser = BrowserSession().__enter__()
-        return _browser.get_activity_detail(activity_id)
+        result = _browser.get_activity_detail(activity_id)
+        db.upsert_activity_detail_cache(activity_id, result)
+        return result
 
     def _api_streams(activity_id: int, keys: list) -> dict:
+        cached = db.get_activity_streams_cache(activity_id)
+        if cached:
+            return {k: v for k, v in cached.items() if k in keys}
         try:
-            return sc.get_streams(activity_id, keys)
+            result = sc.get_streams(activity_id, keys)
+            db.upsert_activity_streams_cache(activity_id, result)
+            return result
         except requests.HTTPError as e:
             if e.response.status_code != 404:
                 raise
         nonlocal _browser
         if _browser is None:
             _browser = BrowserSession().__enter__()
-        return _browser.get_streams(activity_id, keys)
+        result = _browser.get_streams(activity_id, keys)
+        db.upsert_activity_streams_cache(activity_id, result)
+        return result
 
     try:
         # ── 1. Resolve reference activity ───────────────────────────────────
@@ -145,8 +159,8 @@ def main():
         if args.riders:
             ids = [int(x.strip()) for x in args.riders.split(",") if x.strip()]
             for i, aid in enumerate(ids[:5]):
-                profile = sc.get_athlete_profile(aid)
                 cached = db.get_rider(aid)
+                profile = None if cached else sc.get_athlete_profile(aid)
 
                 if profile:
                     name = f"{profile.get('firstname', '')} {profile.get('lastname', '')}".strip()
@@ -160,7 +174,6 @@ def main():
                     print(f"      [info] Using cached data for {aid}")
                 else:
                     # v3 API returned 403 — fall back to scraping the profile page.
-                    # BrowserSession may already be open; if not, open it lazily.
                     if _browser is None:
                         _browser = BrowserSession().__enter__()
                     scraped = _browser.get_athlete_profile(aid)
@@ -184,11 +197,11 @@ def main():
                     "latlng": [],
                 }
 
-                # Use the already-open BrowserSession for route matching to
-                # avoid spawning a second Playwright event loop.
-                if _browser is None:
-                    _browser = BrowserSession().__enter__()
-                match = _browser.find_route_match(activity_id, ref_latlng, aid, target_date)
+                match = scraper.find_route_match_cached(activity_id, aid, target_date)
+                if match is scraper._NEEDS_BROWSER:
+                    if _browser is None:
+                        _browser = BrowserSession().__enter__()
+                    match = _browser.find_route_match(activity_id, ref_latlng, aid, target_date)
                 if match and match["activity_id"] == activity_id:
                     # Rider's best match is the primary activity itself — they're the activity
                     # owner already shown as the primary athlete, so skip to avoid a duplicate.

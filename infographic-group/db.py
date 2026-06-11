@@ -47,6 +47,12 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             computed_at       TEXT NOT NULL,
             PRIMARY KEY (ref_activity_id, rider_activity_id)
         );
+        CREATE TABLE IF NOT EXISTS activity_cache (
+            activity_id  INTEGER PRIMARY KEY,
+            detail_json  TEXT,
+            streams_json TEXT,
+            cached_at    TEXT NOT NULL
+        );
     """)
     conn.commit()
 
@@ -167,5 +173,51 @@ def upsert_similarity(ref_activity_id: int, rider_activity_id: int, score: float
            ON CONFLICT(ref_activity_id, rider_activity_id) DO UPDATE SET
                score=excluded.score, computed_at=excluded.computed_at""",
         (ref_activity_id, rider_activity_id, score, datetime.datetime.now().isoformat()),
+    )
+    conn.commit()
+
+
+# ── Activity cache ────────────────────────────────────────────────────────────
+
+def get_activity_detail_cache(activity_id: int) -> dict | None:
+    row = _get_conn().execute(
+        "SELECT detail_json FROM activity_cache WHERE activity_id = ? AND detail_json IS NOT NULL",
+        (activity_id,),
+    ).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def get_activity_streams_cache(activity_id: int) -> dict | None:
+    row = _get_conn().execute(
+        "SELECT streams_json FROM activity_cache WHERE activity_id = ? AND streams_json IS NOT NULL",
+        (activity_id,),
+    ).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def upsert_activity_detail_cache(activity_id: int, detail: dict) -> None:
+    conn = _get_conn()
+    conn.execute(
+        """INSERT INTO activity_cache (activity_id, detail_json, cached_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(activity_id) DO UPDATE SET
+               detail_json=excluded.detail_json, cached_at=excluded.cached_at""",
+        (activity_id, json.dumps(detail), datetime.datetime.now().isoformat()),
+    )
+    conn.commit()
+
+
+def upsert_activity_streams_cache(activity_id: int, streams: dict) -> None:
+    conn = _get_conn()
+    existing = get_activity_streams_cache(activity_id)
+    if existing:
+        existing.update(streams)
+        streams = existing
+    conn.execute(
+        """INSERT INTO activity_cache (activity_id, streams_json, cached_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(activity_id) DO UPDATE SET
+               streams_json=excluded.streams_json, cached_at=excluded.cached_at""",
+        (activity_id, json.dumps(streams), datetime.datetime.now().isoformat()),
     )
     conn.commit()

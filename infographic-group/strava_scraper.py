@@ -220,6 +220,41 @@ class BrowserSession:
             self._pw_cm.__exit__(*args)
 
 
+# ── Cache-only route matching ─────────────────────────────────────────────────
+
+_NEEDS_BROWSER = object()
+
+
+def find_route_match_cached(
+    ref_activity_id: int,
+    rider_id: int,
+    date_str: str,
+    threshold: float = 0.50,
+):
+    """
+    Resolve a route match purely from DB cache.
+
+    Returns:
+      dict   — match found: {"activity_id": X, "similarity": Y}
+      None   — fully resolved from cache, no match above threshold
+      _NEEDS_BROWSER — cache incomplete; caller must fall back to BrowserSession
+    """
+    cached_acts = db.get_scraped_activities(rider_id, date_str)
+    if not cached_acts:
+        return _NEEDS_BROWSER
+
+    for row in cached_acts:
+        activity_id = row["activity_id"]
+        score = db.get_similarity(ref_activity_id, activity_id)
+        if score is None:
+            return _NEEDS_BROWSER
+        if score >= threshold:
+            print(f"  [scraper] Cached similarity {score:.2f} for activity {activity_id}")
+            return {"activity_id": activity_id, "similarity": score}
+
+    return None
+
+
 def _scrape_activity_detail_from_page(page, activity_id: int) -> dict:
     """
     Parse a Strava activity page (already loaded in `page`) and return a dict
