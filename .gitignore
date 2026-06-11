@@ -336,6 +336,10 @@ paket-files/
 __pycache__/
 *.pyc
 
+# Strava cache DB and migration backup
+infographic-group/strava_cache.db
+infographic-group/riders.json.bak
+
 # Cake - Uncomment if you are using it
 # tools/**
 # !tools/packages.config
