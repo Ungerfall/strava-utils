@@ -152,7 +152,9 @@ def main():
         else:
             # Activity belongs to another athlete — detail already has their info.
             primary["avatar_url"] = detail["athlete"].get("profile_medium", "")
-        primary["device_watts"] = detail.get("device_watts", False)
+        primary["device_watts"] = detail.get("device_watts", False) or (
+            "watts" in streams and len(streams["watts"]) > 0
+        )
         primary["km_data"] = sc.summarize_streams(streams, primary["device_watts"])
         athletes = [primary]
 
