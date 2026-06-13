@@ -25,7 +25,7 @@ MAP_H = 500
 ELEV_H = 180
 RIDERS_H = 130
 CHART_H = 560
-PHOTO_H = 300
+PHOTO_H = 810  # 4:3 ratio at 1080 px wide
 
 ATHLETE_COLORS_RGB = [
     (252, 76, 2),

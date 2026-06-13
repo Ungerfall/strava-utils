@@ -91,7 +91,7 @@ def main():
             db.upsert_activity_detail_cache(activity_id, result)
             return result
         except requests.HTTPError as e:
-            if e.response.status_code != 404:
+            if e.response.status_code not in (403, 404):
                 raise
         _detail_via_oauth = False
         print("      [info] Not accessible via OAuth — using browser session…")

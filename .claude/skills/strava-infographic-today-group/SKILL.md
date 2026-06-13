@@ -1,8 +1,8 @@
 ---
 name: strava-infographic-today-group
 description: Generate a WhatsApp-ready group ride infographic from today's Strava activity
-argument-hint: "[--activity ID] [id1,id2,...] [YYYY-MM-DD]"
-arguments: [riders, date]
+argument-hint: "[--activity ID] [--riders id1,id2,...] [--photo]"
+arguments: [activity, riders, photo]
 ---
 
 # strava-infographic-today-group
@@ -10,8 +10,9 @@ arguments: [riders, date]
 Generate a WhatsApp-ready group ride infographic from a Strava ride activity.
 
 **Invocation:** `/strava-infographic-today-group $ARGUMENTS`
-- `$riders` (first arg) — comma-separated Strava athlete IDs for today's group, e.g. `12345678,23456789,34567890`
-- `$date` (second arg, optional) — ride date as `YYYY-MM-DD`; defaults to today when omitted
+- `--activity $activity` (optional) — Strava activity ID to use as the reference route entry point; date is inferred from the activity
+- `--riders $riders` (optional) — comma-separated Strava athlete IDs for the group, e.g. `12345678,23456789,34567890`
+- `--photo $photo` (optional) — pass `--photo-placeholder` to add a dashed group photo section at the bottom
 
 ## One-time setup
 
@@ -56,10 +57,9 @@ python3 infographic.py --activity 18804775758 --riders ID1,ID2,ID3
 ## Arguments
 | Flag | Description |
 |------|-------------|
-| `--activity ID` | Any athlete's activity ID as the entry point — not just yours. If not accessible via OAuth, the browser session is used automatically. |
+| `--activity ID` | Any athlete's activity ID as the entry point — not just yours. Date is inferred from the activity. Falls back to browser session if not accessible via OAuth. |
 | `--fetch-riders` | Print instructions for finding rider IDs |
 | `--riders ID1,ID2,...` | Comma-separated Strava athlete IDs for the group (up to 5) |
-| `--date YYYY-MM-DD` | Override the date (default: today) |
 | `--photo-placeholder` | Add a dashed group photo placeholder section at the bottom |
 | `--output PATH` | Custom output file path |
 
@@ -81,17 +81,19 @@ Keep finished infographics in `output/` by passing `--output ../output/group_rid
 ## Steps Claude should follow
 1. `cd /mnt/c/development/strava-utils/infographic-group`
 2. Build the command:
+   - If `$activity` is non-empty: include `--activity $activity`; derive the output date from the activity (fetch if needed) or use today's date as fallback
    - If `$riders` is non-empty: include `--riders $riders`
    - If `$riders` is empty: run without `--riders`, but first ask "Do you have the Strava athlete IDs?" unless clearly solo mode
-   - If `$date` is non-empty: append `--date $date`
-   - Save to the repo output dir: append `--output ../output/group_ride_$date.png` (use today's date in `YYYYMMDD` form when `$date` is omitted)
+   - If `$ARGUMENTS` contains `--photo`: append `--photo-placeholder`
+   - Save to the repo output dir: append `--output ../output/group_ride_YYYYMMDD_ACTIVITYID.png` using the activity date (or today when no activity given) and the activity ID (omit `_ACTIVITYID` when no activity given)
 3. Run the resulting command
 4. Report the output path and offer to display the image
 
 **Examples** (run from `/mnt/c/development/strava-utils/infographic-group`)
-- `/strava-infographic-today-group 12345678,23456789,34567890` → `python3 infographic.py --riders 12345678,23456789,34567890 --output ../output/group_ride_20260611.png`
-- `/strava-infographic-today-group 12345678,23456789 2026-06-09` → `python3 infographic.py --riders 12345678,23456789 --date 2026-06-09 --output ../output/group_ride_20260609.png`
-- `/strava-infographic-today-group` → solo mode (`python3 infographic.py --output ../output/group_ride_20260611.png`)
+- `/strava-infographic-today-group --activity 18804775758 --riders 12345678,23456789` → `python3 infographic.py --activity 18804775758 --riders 12345678,23456789 --output ../output/group_ride_20260612_18804775758.png`
+- `/strava-infographic-today-group --riders 12345678,23456789,34567890` → `python3 infographic.py --riders 12345678,23456789,34567890 --output ../output/group_ride_20260613.png`
+- `/strava-infographic-today-group --activity 18804775758 --riders 12345678 --photo yes` → `python3 infographic.py --activity 18804775758 --riders 12345678 --photo-placeholder --output ../output/group_ride_20260612_18804775758.png`
+- `/strava-infographic-today-group` → solo mode (`python3 infographic.py --output ../output/group_ride_20260613.png`)
 
 ## Troubleshooting
 - **"Strava token expired"** → Reconnect via the strava-mcp tool in Claude Code
