@@ -60,6 +60,8 @@ def main():
     parser.add_argument("--riders", help="Comma-separated Strava athlete IDs for today's group")
     parser.add_argument("--photo-placeholder", action="store_true",
                         help="Include a group photo placeholder section at the bottom")
+    parser.add_argument("--min-similarity", type=float, default=0.25,
+                        help="Minimum GPS overlap (0–1) to count as a route match (default: 0.25)")
     args = parser.parse_args()
 
     if args.fetch_riders:
@@ -199,11 +201,11 @@ def main():
                     "latlng": [],
                 }
 
-                match = scraper.find_route_match_cached(activity_id, aid, target_date)
+                match = scraper.find_route_match_cached(activity_id, aid, target_date, threshold=args.min_similarity)
                 if match is scraper._NEEDS_BROWSER:
                     if _browser is None:
                         _browser = BrowserSession().__enter__()
-                    match = _browser.find_route_match(activity_id, ref_latlng, aid, target_date)
+                    match = _browser.find_route_match(activity_id, ref_latlng, aid, target_date, threshold=args.min_similarity)
                 if match and match["activity_id"] == activity_id:
                     # Rider's best match is the primary activity itself — they're the activity
                     # owner already shown as the primary athlete, so skip to avoid a duplicate.
