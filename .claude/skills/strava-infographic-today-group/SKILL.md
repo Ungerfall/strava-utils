@@ -87,7 +87,7 @@ Keep finished infographics in `output/` by passing `--output ../output/group_rid
    - If `$ARGUMENTS` contains `--photo`: append `--photo-placeholder`
    - Save to the repo output dir: append `--output ../output/group_ride_YYYYMMDD_ACTIVITYID.png` using the activity date (or today when no activity given) and the activity ID (omit `_ACTIVITYID` when no activity given)
 3. Run the resulting command
-4. Report the output path and offer to display the image
+4. Report the output path
 
 **Examples** (run from `/mnt/c/development/strava-utils/infographic-group`)
 - `/strava-infographic-today-group --activity 18804775758 --riders 12345678,23456789` → `python3 infographic.py --activity 18804775758 --riders 12345678,23456789 --output ../output/group_ride_20260612_18804775758.png`
