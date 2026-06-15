@@ -9,6 +9,8 @@ import matplotlib.patches as mpatches
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+EMOJI_FONT_PATH = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
+
 BG_DARK = (18, 18, 35)
 BG_PANEL = (26, 26, 46)
 BG_TILE = (32, 32, 56)
@@ -34,6 +36,8 @@ ATHLETE_COLORS_RGB = [
     (255, 215, 0),
     (220, 80, 220),
     (0, 210, 210),
+    (255, 107, 107),
+    (163, 230, 53),
 ]
 
 
@@ -59,24 +63,38 @@ def _make_icon(kind: str, size: int = 36, color: str = ORANGE_HEX) -> Image.Imag
     lw = 1.8
 
     if kind == "bike":
-        # Two wheels + frame
-        r_w = mpatches.Circle((2.5, 3.2), 2.2, fill=False, color=color, linewidth=lw)
-        f_w = mpatches.Circle((7.5, 3.2), 2.2, fill=False, color=color, linewidth=lw)
+        # Wheels
+        r_w = mpatches.Circle((2.2, 3.0), 2.0, fill=False, color=color, linewidth=lw)
+        f_w = mpatches.Circle((7.8, 3.0), 2.0, fill=False, color=color, linewidth=lw)
         ax.add_patch(r_w); ax.add_patch(f_w)
-        bb = (5, 3.2); head = (7, 5.8); seat = (3.5, 5.8)
-        for seg in [(2.5, 3.2, bb[0], bb[1]), (bb[0], bb[1], seat[0], seat[1]),
-                    (seat[0], seat[1], head[0], head[1]), (bb[0], bb[1], head[0], head[1]),
-                    (2.5, 3.2, seat[0], seat[1]), (head[0], head[1], 7.5, 3.2)]:
+        # Frame: rear-axle → BB → front-axle, seat-tube, top-tube, down-tube
+        bb = (4.8, 3.0)
+        seat_top = (3.6, 6.2)
+        head_top = (7.0, 6.2)
+        for seg in [
+            (2.2, 3.0, bb[0], bb[1]),           # chain stay
+            (bb[0], bb[1], seat_top[0], seat_top[1]),  # seat tube
+            (seat_top[0], seat_top[1], head_top[0], head_top[1]),  # top tube
+            (head_top[0], head_top[1], bb[0], bb[1]),  # down tube
+            (2.2, 3.0, seat_top[0], seat_top[1]),       # seat stay
+            (head_top[0], head_top[1], 7.8, 3.0),        # fork
+        ]:
             ax.plot([seg[0], seg[2]], [seg[1], seg[3]], color=color, lw=lw, solid_capstyle="round")
-        ax.plot([3.0, 4.3], [6.1, 6.1], color=color, lw=lw + 0.4, solid_capstyle="round")
+        # Seat (horizontal bar above seat tube)
+        ax.plot([3.0, 4.4], [6.5, 6.5], color=color, lw=lw + 0.5, solid_capstyle="round")
+        # Handlebars (T at head tube top)
+        ax.plot([6.5, 7.5], [6.7, 6.7], color=color, lw=lw + 0.3, solid_capstyle="round")
+        ax.plot([7.0, 7.0], [6.2, 6.7], color=color, lw=lw, solid_capstyle="round")
 
     elif kind == "road":
-        # Perspective road: two converging lines + center dashes
-        ax.plot([2, 5], [1, 9], color=color, lw=lw + 0.5, solid_capstyle="round")
-        ax.plot([8, 5], [1, 9], color=color, lw=lw + 0.5, solid_capstyle="round")
-        for y in [2.5, 4.5, 6.5]:
-            x = 5 - (9 - y) * 0.25
-            ax.plot([x - 0.3, x + 0.3], [y, y + 0.8], color=color, lw=lw - 0.5, alpha=0.7)
+        # Ruler: body + tick marks
+        ruler = mpatches.FancyBboxPatch((0.8, 3.8), 8.4, 2.2,
+                                         boxstyle="round,pad=0.25",
+                                         fill=False, edgecolor=color, linewidth=lw)
+        ax.add_patch(ruler)
+        for i, x in enumerate([2.0, 3.3, 4.6, 5.9, 7.2]):
+            tick_h = 1.1 if i % 2 == 0 else 0.65
+            ax.plot([x, x], [6.0, 6.0 + tick_h], color=color, lw=lw - 0.4, solid_capstyle="round")
 
     elif kind == "clock":
         circle = mpatches.Circle((5, 5), 4, fill=False, color=color, linewidth=lw)
@@ -200,6 +218,66 @@ def _centered_text(draw: ImageDraw.ImageDraw, cx: int, y: int, text: str,
     draw.text((cx - (bb[2] - bb[0]) // 2, y), text, font=font, fill=fill)
 
 
+def _is_emoji(ch: str) -> bool:
+    cp = ord(ch)
+    return (0x1F000 <= cp <= 0x1FFFF or 0x2600 <= cp <= 0x27BF or
+            0xFE00 <= cp <= 0xFE0F or 0x1F300 <= cp <= 0x1FAFF)
+
+
+_EMOJI_NATIVE_SIZE = 109  # NotoColorEmoji only has one embedded bitmap size
+
+
+def _render_emoji_segment(seg: str, target_h: int) -> Image.Image | None:
+    """Render an emoji string at native size then scale to target_h."""
+    try:
+        e_font = ImageFont.truetype(EMOJI_FONT_PATH, _EMOJI_NATIVE_SIZE)
+    except Exception:
+        return None
+    tmp = Image.new("RGBA", (len(seg) * _EMOJI_NATIVE_SIZE + 10, _EMOJI_NATIVE_SIZE + 20), (0, 0, 0, 0))
+    bb = ImageDraw.Draw(tmp).textbbox((0, 0), seg, font=e_font, embedded_color=True)
+    w, h = max(bb[2] - bb[0], 1), max(bb[3] - bb[1], 1)
+    glyph = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(glyph).text((-bb[0], -bb[1]), seg, font=e_font, embedded_color=True)
+    scale = target_h / h
+    new_w = max(int(w * scale), 1)
+    return glyph.resize((new_w, target_h), Image.LANCZOS)
+
+
+def _draw_text_mixed(canvas: Image.Image, x: int, y: int, text: str,
+                     font: ImageFont.FreeTypeFont, fill: tuple) -> None:
+    """Draw text, routing emoji chars to NotoColorEmoji and the rest to the given font."""
+    segments: list[tuple[str, bool]] = []
+    cur, cur_e = "", False
+    for ch in text:
+        is_e = _is_emoji(ch)
+        if cur and is_e != cur_e:
+            segments.append((cur, cur_e))
+            cur = ""
+        cur_e = is_e
+        cur += ch
+    if cur:
+        segments.append((cur, cur_e))
+
+    draw = ImageDraw.Draw(canvas)
+    cx = x
+    for seg, is_e in segments:
+        if is_e:
+            bb_ref = draw.textbbox((0, 0), "A", font=font)
+            target_h = bb_ref[3] - bb_ref[1]
+            glyph = _render_emoji_segment(seg, target_h)
+            if glyph:
+                canvas.paste(glyph.convert("RGB"), (cx, y), mask=glyph.split()[3])
+                cx += glyph.width + 2
+            else:
+                draw.text((cx, y), seg, font=font, fill=fill)
+                bb = draw.textbbox((0, 0), seg, font=font)
+                cx += bb[2] - bb[0]
+        else:
+            draw.text((cx, y), seg, font=font, fill=fill)
+            bb = draw.textbbox((0, 0), seg, font=font)
+            cx += bb[2] - bb[0]
+
+
 def _dashed_rect(draw: ImageDraw.ImageDraw, x0, y0, x1, y1, color, dash=18, gap=10):
     for (ax, ay), (bx, by) in [((x0,y0),(x1,y0)),((x1,y0),(x1,y1)),
                                  ((x1,y1),(x0,y1)),((x0,y1),(x0,y0))]:
@@ -220,9 +298,15 @@ def _dashed_rect(draw: ImageDraw.ImageDraw, x0, y0, x1, y1, color, dash=18, gap=
 def compose(activity: dict, map_img: Image.Image,
             elev_img: Image.Image, athletes: list[dict],
             chart_img: Image.Image | None = None,
-            photo_placeholder: bool = False) -> Image.Image:
+            photo_placeholder: bool = False,
+            title: str = "") -> Image.Image:
 
-    total_h = HEADER_H + STATS_H + MAP_H + ELEV_H + RIDERS_H
+    n_riders = len(athletes)
+    n_rows = 2 if n_riders > 5 else 1
+    actual_riders_h = RIDERS_H * n_rows
+    actual_header_h = HEADER_H + 34 if title else HEADER_H
+
+    total_h = actual_header_h + STATS_H + MAP_H + ELEV_H + actual_riders_h
     if chart_img is not None:
         total_h += CHART_H
     if photo_placeholder:
@@ -235,22 +319,30 @@ def compose(activity: dict, map_img: Image.Image,
                                               "thermometer", "camera")}
 
     # ── Header ───────────────────────────────────────────────────────────────
-    draw.rectangle([(0, 0), (CANVAS_W, HEADER_H)], fill=BG_PANEL)
+    draw.rectangle([(0, 0), (CANVAS_W, actual_header_h)], fill=BG_PANEL)
     draw.rectangle([(0, 0), (CANVAS_W, 5)], fill=STRAVA_ORANGE)
 
     bike = _make_icon("bike", 56)
-    _paste_icon(canvas, bike, 54, HEADER_H // 2 + 2)
-
-    title_font = _font(36, bold=True)
-    date_font = _font(22)
-    draw.text((100, 14), "GROUP RIDE", font=title_font, fill=STRAVA_ORANGE)
+    _paste_icon(canvas, bike, 54, actual_header_h // 2 + 2)
 
     start_dt = _parse_date(activity.get("start_date_local", ""))
     date_str = start_dt.strftime("%A, %d %b %Y") if start_dt else "Today"
-    draw.text((100, 58), date_str, font=date_font, fill=TEXT_WHITE)
+
+    if title:
+        label_font = _font(20)
+        title_font = _font(30, bold=True)
+        date_font = _font(19)
+        draw.text((100, 10), "GROUP RIDE", font=label_font, fill=STRAVA_ORANGE)
+        _draw_text_mixed(canvas, 100, 36, title, title_font, TEXT_WHITE)
+        draw.text((100, 74), date_str, font=date_font, fill=TEXT_GREY)
+    else:
+        title_font = _font(36, bold=True)
+        date_font = _font(22)
+        draw.text((100, 14), "GROUP RIDE", font=title_font, fill=STRAVA_ORANGE)
+        draw.text((100, 58), date_str, font=date_font, fill=TEXT_WHITE)
 
     # ── Stats strip ──────────────────────────────────────────────────────────
-    sy = HEADER_H
+    sy = actual_header_h
     draw.rectangle([(0, sy), (CANVAS_W, sy + STATS_H)], fill=BG_DARK)
 
     dist_km = activity.get("distance", 0) / 1000
@@ -284,7 +376,7 @@ def compose(activity: dict, map_img: Image.Image,
         _centered_text(draw, cx, sy + 76, label, lbl_font, TEXT_GREY)
 
     # ── Route map ────────────────────────────────────────────────────────────
-    my = HEADER_H + STATS_H
+    my = actual_header_h + STATS_H
     map_resized = map_img.resize((CANVAS_W, MAP_H), Image.LANCZOS).convert("RGB")
     canvas.paste(map_resized, (0, my))
 
@@ -295,37 +387,42 @@ def compose(activity: dict, map_img: Image.Image,
 
     # ── Riders ───────────────────────────────────────────────────────────────
     ry = ey + ELEV_H
-    draw.rectangle([(0, ry), (CANVAS_W, ry + RIDERS_H)], fill=BG_PANEL)
+    draw.rectangle([(0, ry), (CANVAS_W, ry + actual_riders_h)], fill=BG_PANEL)
 
     av_size = 70
     name_font = _font(17, bold=True)
-    n_riders = min(len(athletes), 6)
-    slot_w = CANVAS_W // max(n_riders, 1)
 
-    for i, athlete in enumerate(athletes[:6]):
-        cx = slot_w * i + slot_w // 2
-        color_rgb = ATHLETE_COLORS_RGB[i % len(ATHLETE_COLORS_RGB)]
-        av_y = ry + 10
+    per_row = math.ceil(n_riders / n_rows) if n_rows > 1 else n_riders
+    rows = [athletes[i:i + per_row] for i in range(0, n_riders, per_row)]
 
-        av_raw = _fetch_avatar(athlete.get("avatar_url", ""), av_size, athlete.get("avatar_path", ""))
-        if av_raw:
-            av_circle = _circle_crop(av_raw, av_size, color_rgb)
-            canvas.paste(av_circle, (cx - av_size // 2, av_y), mask=av_circle.split()[3])
-        else:
-            draw.ellipse([(cx - av_size//2, av_y),
-                          (cx + av_size//2, av_y + av_size)], fill=color_rgb)
+    for row_idx, row_athletes in enumerate(rows):
+        row_y = ry + row_idx * RIDERS_H
+        slot_w = CANVAS_W // len(row_athletes)
+        for col_idx, athlete in enumerate(row_athletes):
+            i = row_idx * per_row + col_idx
+            cx = slot_w * col_idx + slot_w // 2
+            color_rgb = ATHLETE_COLORS_RGB[i % len(ATHLETE_COLORS_RGB)]
+            av_y = row_y + 10
 
-        name = athlete.get("name", "")[:14]
-        _centered_text(draw, cx, av_y + av_size + 4, name, name_font, TEXT_WHITE)
+            av_raw = _fetch_avatar(athlete.get("avatar_url", ""), av_size, athlete.get("avatar_path", ""))
+            if av_raw:
+                av_circle = _circle_crop(av_raw, av_size, color_rgb)
+                canvas.paste(av_circle, (cx - av_size // 2, av_y), mask=av_circle.split()[3])
+            else:
+                draw.ellipse([(cx - av_size//2, av_y),
+                              (cx + av_size//2, av_y + av_size)], fill=color_rgb)
+
+            name = athlete.get("name", "")[:14]
+            _centered_text(draw, cx, av_y + av_size + 4, name, name_font, TEXT_WHITE)
 
     # ── Performance charts ────────────────────────────────────────────────────
     if chart_img is not None:
-        cy = ry + RIDERS_H
+        cy = ry + actual_riders_h
         chart_resized = chart_img.resize((CANVAS_W, CHART_H), Image.LANCZOS).convert("RGB")
         canvas.paste(chart_resized, (0, cy))
         py = cy + CHART_H
     else:
-        py = ry + RIDERS_H
+        py = ry + actual_riders_h
 
     # ── Photo placeholder (opt-in) ────────────────────────────────────────────
     if photo_placeholder:

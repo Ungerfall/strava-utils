@@ -26,7 +26,7 @@ import strava_scraper as scraper
 from strava_scraper import BrowserSession
 from chart_renderer import render_chart
 
-ATHLETE_PALETTE = ["#FC4C02", "#1E90FF", "#2ECC71", "#FFD700", "#DC50DC", "#00D2D2"]
+ATHLETE_PALETTE = ["#FC4C02", "#1E90FF", "#2ECC71", "#FFD700", "#DC50DC", "#00D2D2", "#FF6B6B", "#A3E635"]
 
 
 def build_athlete_data(activity: dict) -> dict:
@@ -62,6 +62,7 @@ def main():
                         help="Include a group photo placeholder section at the bottom")
     parser.add_argument("--min-similarity", type=float, default=0.25,
                         help="Minimum GPS overlap (0–1) to count as a route match (default: 0.25)")
+    parser.add_argument("--title", help="Custom title shown in the infographic header")
     args = parser.parse_args()
 
     if args.fetch_riders:
@@ -162,7 +163,7 @@ def main():
 
         if args.riders:
             ids = [int(x.strip()) for x in args.riders.split(",") if x.strip()]
-            for i, aid in enumerate(ids[:5]):
+            for i, aid in enumerate(ids):
                 cached = db.get_rider(aid)
                 profile = None if cached else sc.get_athlete_profile(aid)
 
@@ -190,7 +191,7 @@ def main():
                         print(f"      [warn] Could not fetch athlete {aid}, skipping")
                         continue
 
-                color = ATHLETE_PALETTE[min(i + 1, len(ATHLETE_PALETTE) - 1)]
+                color = ATHLETE_PALETTE[(i + 1) % len(ATHLETE_PALETTE)]
                 athlete: dict = {
                     "name": name or f"Rider {aid}",
                     "avatar_url": avatar_url,
@@ -263,6 +264,7 @@ def main():
             detail, map_img, elev_img, athletes,
             chart_img=chart_img,
             photo_placeholder=args.photo_placeholder,
+            title=args.title or "",
         )
 
         out_path = args.output or f"group_ride_{target_date.replace('-', '')}.png"
