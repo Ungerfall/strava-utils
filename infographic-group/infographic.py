@@ -93,6 +93,8 @@ def main():
             _detail_via_oauth = True
             db.upsert_activity_detail_cache(activity_id, result)
             return result
+        except RuntimeError:
+            pass
         except requests.HTTPError as e:
             if e.response.status_code not in (403, 404):
                 raise
@@ -112,6 +114,8 @@ def main():
             result = sc.get_streams(activity_id, keys)
             db.upsert_activity_streams_cache(activity_id, result)
             return result
+        except RuntimeError:
+            pass
         except requests.HTTPError as e:
             if e.response.status_code != 404:
                 raise

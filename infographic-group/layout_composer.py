@@ -198,7 +198,7 @@ def _format_duration(seconds: int) -> str:
 
 
 def _parse_date(s: str) -> datetime.datetime | None:
-    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S"):
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
         try:
             return datetime.datetime.strptime(s, fmt)
         except ValueError:
@@ -326,7 +326,7 @@ def compose(activity: dict, map_img: Image.Image,
     _paste_icon(canvas, bike, 54, actual_header_h // 2 + 2)
 
     start_dt = _parse_date(activity.get("start_date_local", ""))
-    date_str = start_dt.strftime("%A, %d %b %Y") if start_dt else "Today"
+    date_str = start_dt.strftime("%A, %d %b %Y") if start_dt else ""
 
     if title:
         label_font = _font(20)
