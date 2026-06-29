@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python3 *)",
       "Bash(git filter-repo *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "mcp__strava-mcp__list_activities"
     ]
   }
 }

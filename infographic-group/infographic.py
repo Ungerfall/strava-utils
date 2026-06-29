@@ -271,7 +271,12 @@ def main():
             title=args.title or "",
         )
 
-        out_path = args.output or f"group_ride_{target_date.replace('-', '')}.png"
+        date_tag = target_date.replace("-", "")
+        default_name = f"group_ride_{date_tag}_{activity_id}.png"
+        if args.output and Path(args.output).is_dir():
+            out_path = str(Path(args.output) / default_name)
+        else:
+            out_path = args.output or default_name
         output_img.save(out_path, "PNG", optimize=True)
         print(f"\n✓  Saved: {Path(out_path).resolve()}")
         print(f"   Size: {output_img.width}×{output_img.height} px")

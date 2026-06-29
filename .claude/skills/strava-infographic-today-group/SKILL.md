@@ -61,7 +61,7 @@ python3 infographic.py --activity 18804775758 --riders ID1,ID2,ID3
 | `--fetch-riders` | Print instructions for finding rider IDs |
 | `--riders ID1,ID2,...` | Comma-separated Strava athlete IDs for the group (up to 5) |
 | `--photo-placeholder` | Add a dashed group photo placeholder section at the bottom |
-| `--output PATH` | Custom output file path |
+| `--output PATH` | Output file path or directory. If a directory is given, the filename is auto-constructed as `group_ride_YYYYMMDD_ACTIVITYID.png` using the activity's actual date. |
 
 ## How rider matching works
 
@@ -75,25 +75,25 @@ When `--riders` is given, the scraper automatically:
 If no session file exists, riders are still shown with their profile photos but without performance charts.
 
 ## Output
-Defaults to `group_ride_YYYYMMDD.png` (1080 px wide, height varies by content) in the working dir.
-Keep finished infographics in `output/` by passing `--output ../output/group_ride_YYYYMMDD.png`.
+Defaults to `group_ride_YYYYMMDD_ACTIVITYID.png` in the working dir, using the activity's actual date.
+Pass `--output ../output/` (a directory) to save there with the auto-constructed filename.
 
 ## Steps Claude should follow
 1. `cd /mnt/c/development/strava-utils/infographic-group`
 2. Build the command:
-   - If `$activity` is non-empty: include `--activity $activity`; derive the output date from the activity (fetch if needed) or use today's date as fallback
+   - If `$activity` is non-empty: include `--activity $activity`
    - If `$riders` is non-empty: include `--riders $riders`
    - If `$riders` is empty: run without `--riders`, but first ask "Do you have the Strava athlete IDs?" unless clearly solo mode
    - If `$ARGUMENTS` contains `--photo`: append `--photo-placeholder`
-   - Save to the repo output dir: append `--output ../output/group_ride_YYYYMMDD_ACTIVITYID.png` using the activity date (or today when no activity given) and the activity ID (omit `_ACTIVITYID` when no activity given)
+   - Always append `--output ../output/` so finished infographics land in the repo output dir with the correct date in the filename
 3. Run the resulting command
 4. Report the output path
 
 **Examples** (run from `/mnt/c/development/strava-utils/infographic-group`)
-- `/strava-infographic-today-group --activity 18804775758 --riders 12345678,23456789` → `python3 infographic.py --activity 18804775758 --riders 12345678,23456789 --output ../output/group_ride_20260612_18804775758.png`
-- `/strava-infographic-today-group --riders 12345678,23456789,34567890` → `python3 infographic.py --riders 12345678,23456789,34567890 --output ../output/group_ride_20260613.png`
-- `/strava-infographic-today-group --activity 18804775758 --riders 12345678 --photo yes` → `python3 infographic.py --activity 18804775758 --riders 12345678 --photo-placeholder --output ../output/group_ride_20260612_18804775758.png`
-- `/strava-infographic-today-group` → solo mode (`python3 infographic.py --output ../output/group_ride_20260613.png`)
+- `/strava-infographic-today-group --activity 18804775758 --riders 12345678,23456789` → `python3 infographic.py --activity 18804775758 --riders 12345678,23456789 --output ../output/`
+- `/strava-infographic-today-group --riders 12345678,23456789,34567890` → `python3 infographic.py --riders 12345678,23456789,34567890 --output ../output/`
+- `/strava-infographic-today-group --activity 18804775758 --riders 12345678 --photo yes` → `python3 infographic.py --activity 18804775758 --riders 12345678 --photo-placeholder --output ../output/`
+- `/strava-infographic-today-group` → solo mode (`python3 infographic.py --output ../output/`)
 
 ## Troubleshooting
 - **"Strava token expired"** → Reconnect via the strava-mcp tool in Claude Code
